@@ -25,7 +25,7 @@ class _AddTickerScreenState extends ConsumerState<AddTickerScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Добавить тикер',
+          'Add Ticker',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
@@ -45,7 +45,7 @@ class _AddTickerScreenState extends ConsumerState<AddTickerScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Инструкция для пользователя
+              // User instructions
               Card(
                 margin: const EdgeInsets.only(bottom: 16),
                 child: Padding(
@@ -58,7 +58,7 @@ class _AddTickerScreenState extends ConsumerState<AddTickerScreen> {
                           Icon(Icons.info_outline, color: colorScheme.primary),
                           const SizedBox(width: 8),
                           Text(
-                            'Как добавить тикер',
+                            'How to add a ticker',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -69,17 +69,17 @@ class _AddTickerScreenState extends ConsumerState<AddTickerScreen> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        '1. Введите символ тикера (например, AAPL для Apple)',
+                        '1. Enter the ticker symbol (e.g., AAPL for Apple)',
                         style: TextStyle(fontSize: 14),
                       ),
                       const SizedBox(height: 4),
                       const Text(
-                        '2. Нажмите "Добавить" для отслеживания',
+                        '2. Click "Add" to start tracking',
                         style: TextStyle(fontSize: 14),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '3. Бот начнет анализировать акцию и предлагать сигналы',
+                        '3. The bot will start analyzing the stock and suggesting signals',
                         style: TextStyle(fontSize: 14),
                       ),
                     ],
@@ -87,14 +87,14 @@ class _AddTickerScreenState extends ConsumerState<AddTickerScreen> {
                 ),
               ),
 
-              // Поле ввода тикера
+              // Ticker input field
               _buildSearchBar(colorScheme),
 
               const SizedBox(height: 16),
 
-              // Примеры популярных тикеров
+              // Popular tickers examples
               Text(
-                'Популярные тикеры:',
+                'Popular tickers:',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -142,8 +142,8 @@ class _AddTickerScreenState extends ConsumerState<AddTickerScreen> {
               controller: _controller,
               textCapitalization: TextCapitalization.characters,
               decoration: InputDecoration(
-                labelText: 'Введите тикер',
-                hintText: 'Например: AAPL, MSFT, GOOGL',
+                labelText: 'Enter ticker',
+                hintText: 'Example: AAPL, MSFT, GOOGL',
                 prefixIcon: Icon(Icons.search, color: colorScheme.primary),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -161,7 +161,7 @@ class _AddTickerScreenState extends ConsumerState<AddTickerScreen> {
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Тикер $ticker добавлен для отслеживания'),
+                    content: Text('Ticker $ticker added for monitoring'),
                     backgroundColor: Colors.green,
                   ),
                 );
@@ -172,7 +172,7 @@ class _AddTickerScreenState extends ConsumerState<AddTickerScreen> {
               foregroundColor: colorScheme.onPrimary,
               minimumSize: const Size(110, 56),
             ),
-            child: const Text('Добавить'),
+            child: const Text('Add'),
           ),
         ],
       ),
@@ -187,7 +187,7 @@ class _AddTickerScreenState extends ConsumerState<AddTickerScreen> {
         ref.read(signalViewModelProvider.notifier).addTicker(ticker);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Тикер $ticker добавлен для отслеживания'),
+            content: Text('Ticker $ticker added for monitoring'),
             backgroundColor: Colors.green,
           ),
         );

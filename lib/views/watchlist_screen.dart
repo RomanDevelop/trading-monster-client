@@ -26,14 +26,14 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          '📊 Мониторинг тикеров',
+          '📊 Ticker Monitoring',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Обновить список',
+            tooltip: 'Refresh List',
             onPressed: () {
               ref.read(watchlistProvider.notifier).fetchWatchlist();
             },
@@ -80,7 +80,7 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                                 color: colorScheme.primary, size: 18),
                             const SizedBox(width: 8),
                             Text(
-                              'Важно:',
+                              'Important:',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: colorScheme.primary,
@@ -90,7 +90,7 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          'Система отслеживает и присылает сигналы только по тикерам, которые вы явно добавите в этот список.',
+                          'The system tracks and sends signals only for tickers that you explicitly add to this list.',
                           style: TextStyle(fontSize: 13),
                         ),
                       ],
@@ -105,8 +105,8 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                           controller: _tickerController,
                           textCapitalization: TextCapitalization.characters,
                           decoration: InputDecoration(
-                            labelText: 'Введите тикер акции',
-                            hintText: 'Например: AAPL, MSFT, GOOGL',
+                            labelText: 'Enter stock ticker',
+                            hintText: 'Example: AAPL, MSFT, GOOGL',
                             prefixIcon:
                                 Icon(Icons.search, color: colorScheme.primary),
                             border: OutlineInputBorder(
@@ -129,8 +129,8 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                             // Показываем уведомление об успешном добавлении
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(
-                                    'Тикер $ticker добавлен для мониторинга'),
+                                content:
+                                    Text('Ticker $ticker added for monitoring'),
                                 backgroundColor: Colors.green,
                               ),
                             );
@@ -141,7 +141,7 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                           foregroundColor: colorScheme.onPrimary,
                           minimumSize: const Size(110, 56),
                         ),
-                        child: const Text('Добавить'),
+                        child: const Text('Add'),
                       ),
                     ],
                   ),
@@ -161,7 +161,7 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                           size: 48, color: Colors.redAccent),
                       const SizedBox(height: 16),
                       Text(
-                        'Ошибка: $e',
+                        'Error: $e',
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 16),
                       ),
@@ -170,7 +170,7 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                         onPressed: () {
                           ref.read(watchlistProvider.notifier).fetchWatchlist();
                         },
-                        child: const Text('Повторить'),
+                        child: const Text('Retry'),
                       ),
                     ],
                   ),
@@ -196,18 +196,18 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
             const Icon(Icons.radar, size: 80, color: Colors.grey),
             const SizedBox(height: 24),
             const Text(
-              'Список мониторинга пуст',
+              'Watchlist is empty',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
-              'Добавьте тикер выше, чтобы начать его отслеживание на сервере',
+              'Add a ticker above to start tracking it on the server',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 24),
             const Text(
-              'После добавления тикеров, система будет автоматически анализировать их и отправлять торговые сигналы на основной экран',
+              'After adding tickers, the system will automatically analyze them and send trading signals to the main screen',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
@@ -241,7 +241,7 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                 ),
               ),
               subtitle: const Text(
-                'В процессе мониторинга',
+                'Currently monitoring',
                 style: TextStyle(fontSize: 14),
               ),
               leading: Container(
@@ -259,7 +259,7 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
               trailing: IconButton(
                 icon: const Icon(Icons.remove_circle_outline),
                 color: Colors.redAccent,
-                tooltip: 'Удалить из мониторинга',
+                tooltip: 'Remove from monitoring',
                 onPressed: () {
                   _showDeleteConfirmDialog(ticker);
                 },
@@ -276,14 +276,14 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Удалить $ticker?'),
+          title: Text('Remove $ticker?'),
           content: Text(
-            'Тикер $ticker будет удален из мониторинга. Это действие нельзя отменить.',
+            'Ticker $ticker will be removed from monitoring. This action cannot be undone.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Отмена'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
@@ -291,11 +291,11 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('$ticker удален из мониторинга'),
+                    content: Text('$ticker removed from monitoring'),
                   ),
                 );
               },
-              child: const Text('Удалить'),
+              child: const Text('Remove'),
             ),
           ],
         );

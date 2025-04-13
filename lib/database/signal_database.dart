@@ -1,18 +1,21 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import '../models/signal_model.dart';
 
 class SignalDatabase {
-  static Database? _db;
+  static Database? _database;
 
+  // Get the database instance
   static Future<Database> get database async {
-    if (_db != null) return _db!;
-    _db = await _initDB('signals.db');
-    return _db!;
+    if (_database != null) return _database!;
+    _database = await _initDB();
+    return _database!;
   }
 
-  static Future<Database> _initDB(String file) async {
-    final path = join(await getDatabasesPath(), file);
+  // Initialize the database
+  static Future<Database> _initDB() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'signal_database.db');
+
     return await openDatabase(
       path,
       version: 1,
@@ -20,197 +23,101 @@ class SignalDatabase {
     );
   }
 
-  static Future _createDB(Database db, int version) async {
-    // Таблица сигналов
+  // Create tables
+  static Future<void> _createDB(Database db, int version) async {
+    // Signals table
     await db.execute('''
-      CREATE TABLE signals (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ticker TEXT,
-        signal TEXT,
-        message TEXT,
-        open REAL,
-        close REAL,
-        change_percent REAL,
-        eps_growth REAL,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+      CREATE TABLE IF NOT EXISTS signals (
+        id TEXT PRIMARY KEY,
+        ticker TEXT NOT NULL,
+        signal_type TEXT NOT NULL,
+        message TEXT NOT NULL,
+        open_price REAL NOT NULL,
+        close_price REAL NOT NULL,
+        change_percent REAL NOT NULL,
+        eps_growth REAL NOT NULL,
+        timestamp TEXT NOT NULL,
+        status TEXT NOT NULL
       )
     ''');
 
-    // Таблица сделок (портфолио)
+    // Portfolio table
     await db.execute('''
-      CREATE TABLE portfolio (
+      CREATE TABLE IF NOT EXISTS portfolio (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ticker TEXT,
-        signal_type TEXT,         -- long / short
-        price REAL,
-        quantity REAL,
-        balance_left REAL,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        ticker TEXT NOT NULL,
+        signal_type TEXT NOT NULL,
+        price REAL NOT NULL,
+        quantity REAL NOT NULL,
+        balance_left REAL NOT NULL,
+        timestamp TEXT NOT NULL
       )
     ''');
-  }
 
-  // 💾 Сохранить сигнал
-  static Future<void> insertSignal(SignalModel model) async {
-    final db = await database;
-    await db.insert('signals', {
-      'ticker': model.ticker,
-      'signal': model.signal,
-      'message': model.message,
-      'open': model.open,
-      'close': model.close,
-      'change_percent': model.changePercent,
-      'eps_growth': model.epsGrowth,
+    // Set initial balance
+    await db.insert('portfolio', {
+      'ticker': 'BALANCE',
+      'signal_type': 'balance',
+      'price': 0.0,
+      'quantity': 0.0,
+      'balance_left': 1000.0,
+      'timestamp': DateTime.now().toIso8601String(),
     });
   }
 
-  // 💾 Сохранить сделку
+  // Insert a signal
+  static Future<void> insertSignal(Map<String, dynamic> signal) async {
+    final db = await database;
+    await db.insert(
+      'signals',
+      signal,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // Get all signals
+  static Future<List<Map<String, dynamic>>> getAllSignals() async {
+    final db = await database;
+    return await db.query(
+      'signals',
+      orderBy: 'timestamp DESC',
+    );
+  }
+
+  // Get signals by ticker
+  static Future<List<Map<String, dynamic>>> getSignalsByTicker(
+      String ticker) async {
+    final db = await database;
+    return await db.query(
+      'signals',
+      where: 'ticker = ?',
+      whereArgs: [ticker],
+      orderBy: 'timestamp DESC',
+    );
+  }
+
+  // Update signal status
+  static Future<void> updateSignalStatus(String id, String status) async {
+    final db = await database;
+    await db.update(
+      'signals',
+      {'status': status},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // Insert portfolio entry
   static Future<void> insertPortfolio({
     required String ticker,
-    required String signalType, // long / short
+    required String signalType,
     required double price,
     required double quantity,
     required double balanceLeft,
   }) async {
     final db = await database;
 
-    // Получаем текущий баланс
-    final currentBalance = await getCurrentBalance();
-
-    // Рассчитываем стоимость позиции
-    final double positionValue = price * quantity;
-
-    // Вычисляем новый баланс в зависимости от типа позиции
-    double newBalanceLeft;
-
-    if (signalType.toLowerCase() == 'long') {
-      // Для long позиций вычитаем стоимость из баланса
-      newBalanceLeft = currentBalance - positionValue;
-      print(
-          "LONG position opened: Balance $currentBalance - Position $positionValue = $newBalanceLeft");
-    } else {
-      // Для short позиций баланс не уменьшается
-      newBalanceLeft = currentBalance;
-      print("SHORT position opened: Balance remains $currentBalance");
-    }
-
-    print(
-        "Position opened: Ticker=$ticker, Type=$signalType, Price=$price, Quantity=$quantity");
-
-    await db.insert('portfolio', {
-      'ticker': ticker,
-      'signal_type': signalType,
-      'price': price,
-      'quantity': quantity,
-      'balance_left': newBalanceLeft,
-      'timestamp': DateTime.now().toIso8601String(),
-    });
-  }
-
-  // 📥 Получить историю сигналов
-  static Future<List<SignalModel>> getAllSignals() async {
-    final db = await database;
-    final result = await db.query('signals', orderBy: 'timestamp DESC');
-    return result.map((e) => SignalModel.fromJson(e)).toList();
-  }
-
-  // 📥 Получить сделки
-  static Future<List<Map<String, dynamic>>> getPortfolioHistory() async {
-    final db = await database;
-    // Получаем записи, где тикер не равен "BALANCE"
-    return await db.query('portfolio',
-        where: 'ticker != ?',
-        whereArgs: ['BALANCE'],
-        orderBy: 'timestamp DESC');
-  }
-
-  // 📥 Получить все записи портфолио (включая записи баланса)
-  static Future<List<Map<String, dynamic>>> getAllPortfolioRecords() async {
-    final db = await database;
-    return await db.query('portfolio', orderBy: 'timestamp DESC');
-  }
-
-  // 🔍 Проверка существования активной сделки по тикеру
-  static Future<bool> hasActivePosition(String ticker) async {
-    final db = await database;
-    final result = await db.query(
-      'portfolio',
-      where: 'ticker = ?',
-      whereArgs: [ticker],
-      limit: 1,
-    );
-    return result.isNotEmpty;
-  }
-
-  // 📈 Получить активную позицию по тикеру
-  static Future<Map<String, dynamic>?> getActivePosition(String ticker) async {
-    final db = await database;
-    final result = await db.query(
-      'portfolio',
-      where: 'ticker = ? AND signal_type != ?',
-      whereArgs: [ticker, 'balance'],
-      limit: 1,
-    );
-
-    if (result.isEmpty) {
-      return null;
-    }
-
-    return result.first;
-  }
-
-  // 💰 Расчет прибыли/убытка по позиции
-  static double calculatePnL(
-      Map<String, dynamic> position, double currentPrice) {
-    final String signalType = position['signal_type'] as String;
-    final double entryPrice = position['price'] as double;
-    final double quantity = position['quantity'] as double;
-
-    if (signalType.toLowerCase() == 'long') {
-      // Для long: (текущая_цена - цена_входа) * количество
-      return (currentPrice - entryPrice) * quantity;
-    } else if (signalType.toLowerCase() == 'short') {
-      // Для short: (цена_входа - текущая_цена) * количество
-      return (entryPrice - currentPrice) * quantity;
-    }
-
-    return 0.0;
-  }
-
-  // 📊 Расчет процента прибыли/убытка
-  static double calculatePnLPercent(
-      Map<String, dynamic> position, double currentPrice) {
-    final String signalType = position['signal_type'] as String;
-    final double entryPrice = position['price'] as double;
-
-    if (signalType.toLowerCase() == 'long') {
-      // Для long: (текущая_цена - цена_входа) / цена_входа * 100
-      return (currentPrice - entryPrice) / entryPrice * 100;
-    } else if (signalType.toLowerCase() == 'short') {
-      // Для short: (цена_входа - текущая_цена) / цена_входа * 100
-      return (entryPrice - currentPrice) / entryPrice * 100;
-    }
-
-    return 0.0;
-  }
-
-  // 🧹 Очистить сигналы
-  static Future<void> clear() async {
-    final db = await database;
-    await db.delete('signals');
-  }
-
-  // 🧹 Очистить портфолио
-  static Future<void> clearPortfolio() async {
-    final db = await database;
-    await db.delete('portfolio');
-  }
-
-  // 📝 Добавить запись в портфолио
-  static Future<void> addPortfolioEntry(Map<String, dynamic> entry) async {
-    final db = await database;
-
-    // Получаем текущий баланс
+    // Get current balance
     final balanceResult = await db.query(
       'portfolio',
       columns: ['balance_left'],
@@ -218,23 +125,21 @@ class SignalDatabase {
       limit: 1,
     );
 
-    double currentBalance = 1000.0; // Баланс по умолчанию
+    double currentBalance = 1000.0; // Default balance
     if (balanceResult.isNotEmpty) {
       currentBalance = balanceResult.first['balance_left'] as double;
     }
 
-    // Рассчитываем стоимость позиции
-    final double quantity = entry['quantity'] as double;
-    final double price = entry['price'] as double;
+    // Calculate position value
     final double positionValue = quantity * price;
 
-    // Вычитаем стоимость из баланса
+    // Subtract position value from balance
     final double balanceLeft = currentBalance - positionValue;
 
-    // Добавляем запись с обновленным балансом
+    // Add entry with updated balance
     await db.insert('portfolio', {
-      'ticker': entry['ticker'],
-      'signal_type': entry['signal_type'],
+      'ticker': ticker,
+      'signal_type': signalType,
       'price': price,
       'quantity': quantity,
       'balance_left': balanceLeft,
@@ -242,54 +147,51 @@ class SignalDatabase {
     });
   }
 
-  // 🚫 Закрыть позицию по тикеру
+  // Close position by ticker
   static Future<void> closePositionByTicker(
       String ticker, double closePrice) async {
     final db = await database;
 
-    // Получаем активную позицию
+    // Get active position
     final position = await getActivePosition(ticker);
     if (position == null) {
-      return; // Нет активной позиции
+      return; // No active position
     }
 
-    // Получаем данные позиции
+    // Get position data
     final double quantity = position['quantity'] as double;
     final double entryPrice = position['price'] as double;
     final String signalType = position['signal_type'] as String;
 
-    // Получаем ID записи
+    // Get record ID
     final int id = position['id'] as int;
 
-    // Получаем текущий баланс
+    // Get current balance
     final double currentBalance = await getCurrentBalance();
 
-    // Сумма, вложенная в позицию
-    final double investedAmount = quantity * entryPrice;
-
-    // Сумма при закрытии позиции
+    // Closing amount
     final double closingAmount = quantity * closePrice;
 
-    // Расчет P&L
+    // Calculate P&L
     double pnl = 0.0;
     double updatedBalance = 0.0;
 
     if (signalType.toLowerCase() == 'long') {
-      // Для LONG: P&L = (Цена закрытия - Цена входа) * Количество
+      // For LONG: P&L = (Close price - Entry price) * Quantity
       pnl = (closePrice - entryPrice) * quantity;
 
-      // ВАЖНО: Добавляем к балансу сумму закрытия
-      // (возвращаем инвестиции + добавляем P&L)
+      // IMPORTANT: Add closing amount to balance
+      // (return investment + add P&L)
       updatedBalance = currentBalance + closingAmount;
 
       print(
           "LONG position closed: Balance $currentBalance + Closing $closingAmount = $updatedBalance");
     } else {
-      // Для SHORT: P&L = (Цена входа - Цена закрытия) * Количество
+      // For SHORT: P&L = (Entry price - Close price) * Quantity
       pnl = (entryPrice - closePrice) * quantity;
 
-      // Для SHORT позиций мы не вычитали деньги из баланса при открытии,
-      // поэтому просто добавляем прибыль
+      // For SHORT positions we don't subtract money from balance at opening,
+      // so we just add the profit
       updatedBalance = currentBalance + pnl;
 
       print(
@@ -299,14 +201,14 @@ class SignalDatabase {
     print(
         "Position closed: Ticker=$ticker, Entry=$entryPrice, Close=$closePrice, P&L=$pnl");
 
-    // Удаляем запись позиции
+    // Delete position record
     await db.delete(
       'portfolio',
       where: 'id = ?',
       whereArgs: [id],
     );
 
-    // Добавляем новую запись с обновленным балансом
+    // Add new record with updated balance
     await db.insert('portfolio', {
       'ticker': 'BALANCE',
       'signal_type': 'balance',
@@ -317,7 +219,7 @@ class SignalDatabase {
     });
   }
 
-  // 💰 Получить текущий баланс
+  // Get current balance
   static Future<double> getCurrentBalance() async {
     final db = await database;
     final result = await db.query(
@@ -329,7 +231,7 @@ class SignalDatabase {
 
     if (result.isEmpty) {
       print("No balance record found, returning default balance 1000.0");
-      return 1000.0; // Начальный баланс
+      return 1000.0; // Initial balance
     }
 
     final balanceRecord = result.first;
@@ -344,13 +246,77 @@ class SignalDatabase {
     return balance;
   }
 
-  // 📥 Получить активные позиции без учета записей баланса
+  // Get active positions excluding balance records
   static Future<List<Map<String, dynamic>>> getActivePositions() async {
     final db = await database;
-    // Получаем только записи, где тикер НЕ равен "BALANCE" и тип НЕ равен "balance"
+    // Get only records where ticker is NOT "BALANCE" and type is NOT "balance"
     return await db.query('portfolio',
         where: 'ticker != ? AND signal_type != ?',
         whereArgs: ['BALANCE', 'balance'],
         orderBy: 'timestamp DESC');
+  }
+
+  // Get active position for specific ticker
+  static Future<Map<String, dynamic>?> getActivePosition(String ticker) async {
+    final db = await database;
+    final List<Map<String, dynamic>> result = await db.query(
+      'portfolio',
+      where: 'ticker = ?',
+      whereArgs: [ticker],
+      limit: 1,
+    );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    return result.first;
+  }
+
+  // Calculate profit and loss (P&L)
+  static double calculatePnL(
+      Map<String, dynamic> position, double currentPrice) {
+    final double entryPrice = position['price'] as double;
+    final double quantity = position['quantity'] as double;
+    final String signalType = position['signal_type'] as String;
+
+    if (signalType.toLowerCase() == 'long') {
+      // For LONG: P&L = (Current price - Entry price) * Quantity
+      return (currentPrice - entryPrice) * quantity;
+    } else {
+      // For SHORT: P&L = (Entry price - Current price) * Quantity
+      return (entryPrice - currentPrice) * quantity;
+    }
+  }
+
+  // Calculate P&L percentage
+  static double calculatePnLPercent(
+      Map<String, dynamic> position, double currentPrice) {
+    final double entryPrice = position['price'] as double;
+    final double pnl = calculatePnL(position, currentPrice);
+    final double investment = entryPrice * (position['quantity'] as double);
+
+    if (investment == 0) return 0.0;
+    return (pnl / investment) * 100;
+  }
+
+  // Clear portfolio and reset balance
+  static Future<void> clearPortfolio() async {
+    final db = await database;
+
+    // Delete all portfolio entries
+    await db.delete('portfolio');
+
+    // Reset balance to initial 1000.0
+    await db.insert('portfolio', {
+      'ticker': 'BALANCE',
+      'signal_type': 'balance',
+      'price': 0.0,
+      'quantity': 0.0,
+      'balance_left': 1000.0,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+
+    print("Portfolio cleared and balance reset to 1000.0");
   }
 }

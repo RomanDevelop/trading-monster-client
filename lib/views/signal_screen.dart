@@ -14,16 +14,27 @@ class SignalScreen extends ConsumerStatefulWidget {
   ConsumerState<SignalScreen> createState() => _SignalScreenState();
 }
 
-class _SignalScreenState extends ConsumerState<SignalScreen> {
+class _SignalScreenState extends ConsumerState<SignalScreen>
+    with AutomaticKeepAliveClientMixin {
+  // Keep this page in memory when switching tabs
+  @override
+  bool get wantKeepAlive => true;
+
   Timer? _timer;
   Map<String, bool> _activePositions = {};
   Map<String, Map<String, dynamic>> _positionsData = {};
+  bool _isLoading = false;
+  String? _error;
+
+  // Initial ticker input for testing (for development)
+  final TextEditingController _tickerController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    // Delay initialization until after widget build
 
-    // Откладываем инициализацию после построения виджета
+    // Delay initialization after widget building
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _loadActivePositions();
@@ -82,13 +93,14 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
         }
       }
     } catch (e) {
-      print('Ошибка при загрузке активных позиций: $e');
+      print('Error loading active positions: $e');
     }
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _tickerController.dispose();
     super.dispose();
   }
 
@@ -100,7 +112,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          '📊 Trading Signal Bot',
+          'Trading Monster App',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
@@ -132,7 +144,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
                               size: 48, color: Colors.redAccent),
                           const SizedBox(height: 16),
                           Text(
-                            'Ошибка: $e',
+                            'Error: $e',
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 16),
                           ),
@@ -143,7 +155,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
                                   .read(signalViewModelProvider.notifier)
                                   .fetchSignals();
                             },
-                            child: const Text('Повторить'),
+                            child: const Text('Retry'),
                           ),
                         ],
                       ),
@@ -170,18 +182,18 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
             const Icon(Icons.bar_chart, size: 80, color: Colors.grey),
             const SizedBox(height: 24),
             const Text(
-              'Нет активных сигналов',
+              'No active signals',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
-              'Перейдите на вкладку "Мониторинг" и добавьте тикеры акций, которые хотите отслеживать',
+              'Go to the "Monitoring" tab and add stock tickers you want to track',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 16),
             const Text(
-              'Система будет анализировать только явно указанные вами тикеры',
+              'The system will only analyze tickers you explicitly specify',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
@@ -265,7 +277,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
                               Padding(
                                 padding: const EdgeInsets.only(left: 0),
                                 child: Tooltip(
-                                  message: 'Есть активная позиция',
+                                  message: 'Active position',
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 4),
@@ -285,7 +297,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'В портфеле',
+                                          'In portfolio',
                                           style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.bold,
@@ -319,7 +331,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            'Изменение: ${signal.changePercent.toStringAsFixed(2)}%',
+                            'Change: ${signal.changePercent.toStringAsFixed(2)}%',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -369,7 +381,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
                               OutlinedButton.icon(
                                 onPressed: () => _rejectSignal(signal),
                                 icon: const Icon(Icons.cancel_outlined),
-                                label: const Text('Отклонить'),
+                                label: const Text('Reject'),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.grey.shade700,
                                 ),
@@ -383,7 +395,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
                                   isClosing: false,
                                 ),
                                 icon: const Icon(Icons.check_circle_outline),
-                                label: const Text('Подтвердить'),
+                                label: const Text('Confirm'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: signalColor,
                                   foregroundColor: Colors.white,
@@ -401,7 +413,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
                                   isClosing: true,
                                 ),
                                 icon: const Icon(Icons.remove_circle_outline),
-                                label: const Text('Закрыть позицию'),
+                                label: const Text('Close Position'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.grey.shade700,
                                   foregroundColor: Colors.white,
@@ -415,8 +427,8 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
                               // Информационное сообщение
                               Text(
                                 signal.status == 'rejected'
-                                    ? 'Сигнал отклонен'
-                                    : 'Позиция закрыта',
+                                    ? 'Signal rejected'
+                                    : 'Position closed',
                                 style: TextStyle(
                                   color: Colors.grey.shade600,
                                   fontStyle: FontStyle.italic,
@@ -457,7 +469,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
     );
   }
 
-  // Метод для отклонения сигнала
+  // Method to reject signal
   void _rejectSignal(SignalModel signal) async {
     final success = await ref
         .read(signalViewModelProvider.notifier)
@@ -466,14 +478,14 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Сигнал отклонен'),
+          content: Text('Signal rejected'),
           backgroundColor: Colors.grey,
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Не удалось отклонить сигнал'),
+          content: Text('Failed to reject signal'),
           backgroundColor: Colors.red,
         ),
       );
@@ -511,7 +523,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Позиция ${signalType.toUpperCase()}',
+                'Position ${signalType.toUpperCase()}',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -540,10 +552,11 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _positionDetailItem('Вход', '\$${entryPrice.toStringAsFixed(2)}'),
               _positionDetailItem(
-                  'Текущая', '\$${currentPrice.toStringAsFixed(2)}'),
-              _positionDetailItem('Количество', quantity.toStringAsFixed(2)),
+                  'Entry', '\$${entryPrice.toStringAsFixed(2)}'),
+              _positionDetailItem(
+                  'Current', '\$${currentPrice.toStringAsFixed(2)}'),
+              _positionDetailItem('Quantity', quantity.toStringAsFixed(2)),
             ],
           ),
         ],
@@ -595,36 +608,35 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
     );
   }
 
-  // Метод для отображения диалога подтверждения сделки
+  // Method to show trade confirmation dialog
   void _showConfirmTradeDialog(BuildContext context, SignalModel signal,
       {required bool isClosing}) {
     final double currentPrice = signal.close;
-    final String action = isClosing ? 'закрыть' : 'открыть';
-    final String signalTypeText = signal.signal.toLowerCase() == 'long'
-        ? 'LONG (покупка)'
-        : 'SHORT (продажа)';
+    final String action = isClosing ? 'close' : 'open';
+    final String signalTypeText =
+        signal.signal.toLowerCase() == 'long' ? 'LONG (buy)' : 'SHORT (sell)';
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        double quantity = 1.0; // Количество по умолчанию
+        double quantity = 1.0; // Default quantity
 
         return StatefulBuilder(builder: (context, setState) {
           final double totalValue = quantity * currentPrice;
 
           return AlertDialog(
             title: Text(isClosing
-                ? 'Закрыть позицию ${signal.ticker}'
-                : 'Открыть позицию ${signal.ticker}'),
+                ? 'Close position ${signal.ticker}'
+                : 'Open position ${signal.ticker}'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Вы собираетесь $action позицию:'),
+                Text('You are about to $action a position:'),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Text('Тикер: ',
+                    const Text('Ticker: ',
                         style: TextStyle(fontWeight: FontWeight.bold)),
                     Text(signal.ticker, style: const TextStyle(fontSize: 16))
                   ],
@@ -632,7 +644,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Text('Тип: ',
+                    const Text('Type: ',
                         style: TextStyle(fontWeight: FontWeight.bold)),
                     Text(signalTypeText, style: const TextStyle(fontSize: 16))
                   ],
@@ -640,7 +652,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Text('Текущая цена: ',
+                    const Text('Current price: ',
                         style: TextStyle(fontWeight: FontWeight.bold)),
                     Text('\$${currentPrice.toStringAsFixed(2)}',
                         style: const TextStyle(fontSize: 16))
@@ -648,7 +660,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
                 ),
                 if (!isClosing) ...[
                   const SizedBox(height: 16),
-                  const Text('Количество:'),
+                  const Text('Quantity:'),
                   Slider(
                     value: quantity,
                     min: 0.1,
@@ -665,7 +677,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(quantity.toStringAsFixed(1)),
-                      Text('Сумма: \$${totalValue.toStringAsFixed(2)}',
+                      Text('Amount: \$${totalValue.toStringAsFixed(2)}',
                           style: const TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
@@ -675,25 +687,25 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Отмена'),
+                child: const Text('Cancel'),
               ),
               ElevatedButton(
                 onPressed: () async {
                   if (isClosing) {
                     await _closePosition(signal);
                   } else {
-                    // Подтверждаем сигнал через API
+                    // Confirm signal via API
                     final success = await ref
                         .read(signalViewModelProvider.notifier)
                         .confirmSignal(signal.id, quantity);
 
                     if (success) {
-                      // Затем открываем позицию локально
+                      // Then open position locally
                       await _openPosition(signal, quantity);
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Не удалось подтвердить сигнал'),
+                          content: Text('Failed to confirm signal'),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -710,8 +722,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
                           : Colors.redAccent.shade700,
                   foregroundColor: Colors.white,
                 ),
-                child:
-                    Text(isClosing ? 'Закрыть позицию' : 'Подтвердить сигнал'),
+                child: Text(isClosing ? 'Close position' : 'Confirm signal'),
               ),
             ],
           );
@@ -720,121 +731,122 @@ class _SignalScreenState extends ConsumerState<SignalScreen> {
     );
   }
 
-  // Метод для открытия позиции
+  // Method for opening a position
   Future<void> _openPosition(SignalModel signal, double quantity) async {
     final ticker = signal.ticker;
     final signalType = signal.signal.toLowerCase();
     final price = signal.close;
 
-    // Проверяем, не существует ли уже позиция по данному тикеру
+    // Check if position already exists for this ticker
     final existingPosition = await SignalDatabase.getActivePosition(ticker);
     if (existingPosition != null) {
-      return; // Позиция уже существует, выходим
+      return; // Position already exists, exit
     }
 
-    // Получаем текущий баланс
+    // Get current balance
     final currentBalance = await SignalDatabase.getCurrentBalance();
 
-    // Рассчитываем стоимость позиции
+    // Calculate position value
     final double positionValue = quantity * price;
 
-    // Проверяем, достаточно ли денег (только для long)
+    // Check if there's enough money (only for long)
     if (signalType == 'long' && positionValue > currentBalance) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Недостаточно денег для открытия позиции'),
+          content: Text('Not enough money to open position'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    // Добавляем запись в портфель
+    // Add entry to portfolio
     await SignalDatabase.insertPortfolio(
       ticker: ticker,
       signalType: signalType,
       price: price,
       quantity: quantity,
-      balanceLeft: 0, // Это значение будет пересчитано в методе insertPortfolio
+      balanceLeft:
+          0, // This value will be recalculated in insertPortfolio method
     );
 
-    // Обновляем UI
+    // Update UI
     _loadActivePositions();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-            'Позиция $ticker открыта по цене \$${price.toStringAsFixed(2)}'),
+            'Position $ticker opened at price \$${price.toStringAsFixed(2)}'),
         backgroundColor: Colors.green,
       ),
     );
   }
 
-  // Метод для закрытия позиции
+  // Method for closing a position
   Future<void> _closePosition(SignalModel signal) async {
     final ticker = signal.ticker;
     final closePrice = signal.close;
 
-    // Получаем активную позицию
+    // Get active position
     final position = await SignalDatabase.getActivePosition(ticker);
     if (position == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Позиция не найдена'),
+          content: Text('Position not found'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    // Рассчитываем P&L
+    // Calculate P&L
     final double pnl = SignalDatabase.calculatePnL(position, closePrice);
     final double pnlPercent =
         SignalDatabase.calculatePnLPercent(position, closePrice);
 
-    // Получаем баланс до закрытия
+    // Get balance before closing
     final double balanceBefore = await SignalDatabase.getCurrentBalance();
 
-    // Закрываем позицию в базе данных
+    // Close position in database
     await SignalDatabase.closePositionByTicker(ticker, closePrice);
 
-    // Получаем баланс после закрытия
+    // Get balance after closing
     final double balanceAfter = await SignalDatabase.getCurrentBalance();
     final double balanceDiff = balanceAfter - balanceBefore;
 
     print(
         "Balance before close: $balanceBefore, after: $balanceAfter, diff: $balanceDiff");
 
-    // ВАЖНО: Обновляем позиции И сбрасываем кэш
+    // IMPORTANT: Update positions AND reset cache
     setState(() {
-      // Сразу удаляем позицию из локального кэша
+      // Immediately remove position from local cache
       _activePositions[ticker] = false;
       if (_positionsData.containsKey(ticker)) {
         _positionsData.remove(ticker);
       }
     });
 
-    // Полное обновление данных
+    // Full data update
     await _loadActivePositions();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Позиция $ticker закрыта. P&L: \$${pnl.toStringAsFixed(2)} (${pnlPercent.toStringAsFixed(2)}%). Баланс: \$${balanceAfter.toStringAsFixed(2)}',
+          'Position $ticker closed. P&L: \$${pnl.toStringAsFixed(2)} (${pnlPercent.toStringAsFixed(2)}%). Balance: \$${balanceAfter.toStringAsFixed(2)}',
         ),
         backgroundColor: pnl >= 0 ? Colors.green : Colors.red,
       ),
     );
   }
 
-  // Метод для отображения статуса сигнала
+  // Method to display signal status
   Widget _buildSignalStatusBadge(SignalModel signal, ColorScheme colorScheme) {
     if (signal.status == 'pending') {
-      return _buildStatusBadge('Ожидает', Colors.orange, colorScheme);
+      return _buildStatusBadge('Pending', Colors.orange, colorScheme);
     } else if (signal.status == 'confirmed') {
-      return _buildStatusBadge('Подтвержден', Colors.green, colorScheme);
+      return _buildStatusBadge('Confirmed', Colors.green, colorScheme);
     } else if (signal.status == 'rejected') {
-      return _buildStatusBadge('Отклонен', Colors.red, colorScheme);
+      return _buildStatusBadge('Rejected', Colors.red, colorScheme);
     } else {
       return const SizedBox.shrink();
     }

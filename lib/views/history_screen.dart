@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../database/signal_database.dart';
-import '../models/signal_model.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -10,7 +9,7 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  List<SignalModel> history = [];
+  List<Map<String, dynamic>> history = [];
   bool _isLoading = true;
 
   @override
@@ -31,12 +30,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
         _isLoading = true;
       });
 
-      // Даем виджетам время для отрисовки
+      // Give widgets time to render
       await Future.delayed(const Duration(milliseconds: 100));
 
       final data = await SignalDatabase.getAllSignals();
 
-      // Проверка, не был ли виджет демонтирован
+      // Check if widget was unmounted
       if (!mounted) return;
 
       setState(() {
@@ -44,7 +43,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      // Проверка, не был ли виджет демонтирован
+      // Check if widget was unmounted
       if (!mounted) return;
 
       setState(() {
@@ -52,10 +51,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
         history = [];
       });
 
-      // Показываем ошибку только если виджет все еще в дереве
+      // Show error only if widget is still in tree
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Ошибка загрузки истории: $e'),
+          content: Text('Error loading history: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -63,7 +62,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> clearHistory() async {
-    await SignalDatabase.clear();
+    // Delete all signals from the database
+    final db = await SignalDatabase.database;
+    await db.delete('signals');
+
     setState(() {
       history = [];
     });
@@ -76,36 +78,65 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          '📜 История сигналов',
+          '📜 Signal History',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.delete),
-            tooltip: 'Очистить историю',
+            tooltip: 'Clear History',
             onPressed: () {
               showDialog(
                 context: context,
                 builder: (BuildContext context) {
                   return AlertDialog(
-                    title: const Text('Очистить историю?'),
-                    content:
-                        const Text('Все записи истории сигналов будут удалены'),
+                    title: const Text('Clear History?'),
+                    content: const Text(
+                        'All signal history records will be deleted'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Отмена'),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      TextButton(
-                        onPressed: () {
-                          clearHistory();
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('История очищена')),
-                          );
-                        },
-                        child: const Text('Очистить'),
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFF5252), Color(0xFFE53935)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            clearHistory();
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('History cleared')),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 12),
+                          ),
+                          child: const Text(
+                            'Clear',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   );
@@ -122,7 +153,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             end: Alignment.bottomCenter,
             colors: [
               colorScheme.surface,
-              colorScheme.surface.withOpacity(0.9),
+              colorScheme.surface.withAlpha(230),
             ],
           ),
         ),
@@ -136,32 +167,93 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Вместо изображения всегда используем иконку
-            const Icon(Icons.history, size: 80, color: Colors.grey),
-            const SizedBox(height: 24),
-            const Text(
-              'История сигналов пуста',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Здесь будут отображаться все полученные сигналы',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: loadHistory, // Напрямую обновляем историю
-              icon: const Icon(Icons.refresh),
-              label: const Text('Обновить'),
-            ),
-          ],
+    return Center(
+      child: SingleChildScrollView(
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.history,
+                  size: 80,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'Signal history is empty',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: const Text(
+                  'All received signals will be displayed here',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+              Container(
+                width: 220,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1A237E), Color(0xFF3949AB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.3),
+                      spreadRadius: 1,
+                      blurRadius: 15,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton.icon(
+                  onPressed: loadHistory,
+                  icon: const Icon(Icons.refresh, size: 22),
+                  label: const Text(
+                    'Refresh',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 16),
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -175,97 +267,151 @@ class _HistoryScreenState extends State<HistoryScreen> {
         itemBuilder: (context, index) {
           final signal = history[index];
 
-          // Определяем цвет в зависимости от типа сигнала
-          final Color signalColor = signal.signal.toLowerCase() == 'long'
-              ? Colors.greenAccent.shade700
-              : signal.signal.toLowerCase() == 'short'
-                  ? Colors.redAccent.shade700
-                  : colorScheme.primary;
+          // Define color based on signal type
+          final Color signalColor =
+              signal['signal_type'].toLowerCase() == 'long'
+                  ? Colors.greenAccent.shade700
+                  : signal['signal_type'].toLowerCase() == 'short'
+                      ? Colors.redAccent.shade700
+                      : colorScheme.primary;
 
           return RepaintBoundary(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 16),
               child: Card(
-                elevation: 2,
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(
-                      color: signalColor.withOpacity(0.3),
-                      width: 1,
+                      color: signalColor.withAlpha(76), // 0.3 * 255 = ~76
+                      width: 1.5,
                     ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(18),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        // Ticker and signal type
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: signalColor.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    signal.ticker,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: signalColor,
-                                    ),
-                                  ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: signalColor.withAlpha(25),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: signalColor.withAlpha(50),
+                                  width: 1,
                                 ),
-                                const SizedBox(width: 12),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: signalColor.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    signal.signal.toUpperCase(),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: signalColor,
-                                    ),
-                                  ),
+                              ),
+                              child: Text(
+                                signal['ticker'],
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: signalColor,
                                 ),
-                              ],
+                              ),
                             ),
-                            Text(
-                              'Δ: ${signal.changePercent.toStringAsFixed(2)}%',
-                              style: TextStyle(
-                                color: signal.changePercent >= 0
-                                    ? Colors.green
-                                    : Colors.red,
-                                fontWeight: FontWeight.bold,
+                            const SizedBox(width: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: signalColor.withAlpha(25),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: signalColor.withAlpha(50),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                signal['signal_type'].toUpperCase(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: signalColor,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          signal.message,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: colorScheme.onSurfaceVariant,
+
+                        // Change percent
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: (signal['change_percent'] >= 0
+                                      ? Colors.green
+                                      : Colors.red)
+                                  .withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: (signal['change_percent'] >= 0
+                                        ? Colors.green
+                                        : Colors.red)
+                                    .withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              'Δ: ${signal['change_percent'].toStringAsFixed(2)}%',
+                              style: TextStyle(
+                                color: signal['change_percent'] >= 0
+                                    ? Colors.green
+                                    : Colors.red,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _signalInfoItem('Open', signal.open.toString()),
-                            _signalInfoItem('Close', signal.close.toString()),
-                            _signalInfoItem('EPS Growth',
-                                '${signal.epsGrowth.toStringAsFixed(2)}%'),
-                          ],
+
+                        // Signal message
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Text(
+                            signal['message'],
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 15,
+                              height: 1.4,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+
+                        // Signal details
+                        Container(
+                          margin: const EdgeInsets.only(top: 12),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceVariant.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _signalInfoItem(
+                                  'Open', signal['open_price'].toString()),
+                              _buildVerticalDivider(),
+                              _signalInfoItem(
+                                  'Close', signal['close_price'].toString()),
+                              _buildVerticalDivider(),
+                              _signalInfoItem('EPS Growth',
+                                  '${signal['eps_growth'].toStringAsFixed(2)}%'),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -279,9 +425,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  Widget _buildVerticalDivider() {
+    return Container(
+      height: 40,
+      width: 1,
+      color: Colors.grey.withOpacity(0.2),
+    );
+  }
+
   Widget _signalInfoItem(String label, String value) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           label,
@@ -290,6 +444,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             color: Colors.grey.shade600,
           ),
         ),
+        const SizedBox(height: 4),
         Text(
           value,
           style: const TextStyle(

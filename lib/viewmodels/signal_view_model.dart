@@ -1,41 +1,39 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../models/signal_model.dart';
 import '../services/notification_service.dart';
 
-// Провайдер для хранения "известных" тикеров
-final previousTickersProvider = StateProvider<List<String>>((ref) => []);
-
-// Провайдер для хранения списка отслеживаемых тикеров
-final watchlistProvider =
-    StateNotifierProvider<WatchlistNotifier, AsyncValue<List<String>>>(
-  (ref) => WatchlistNotifier(),
-);
-
-// Провайдер для хранения баланса пользователя
-final balanceProvider =
-    StateNotifierProvider<BalanceNotifier, AsyncValue<double>>(
-  (ref) => BalanceNotifier(),
-);
-
-// Провайдер для хранения открытых позиций
-final positionsProvider = StateNotifierProvider<PositionsNotifier,
-    AsyncValue<List<Map<String, dynamic>>>>(
-  (ref) => PositionsNotifier(),
-);
-
+// Providers
 final signalViewModelProvider =
     StateNotifierProvider<SignalViewModel, AsyncValue<List<SignalModel>>>(
-  (ref) => SignalViewModel(ref),
-);
+        (ref) => SignalViewModel(ref));
 
-// Класс для управления балансом
+final watchlistProvider =
+    StateNotifierProvider<WatchlistNotifier, AsyncValue<List<String>>>(
+        (ref) => WatchlistNotifier());
+
+final balanceProvider =
+    StateNotifierProvider<BalanceNotifier, AsyncValue<double>>(
+        (ref) => BalanceNotifier());
+
+final positionsProvider = StateNotifierProvider<PositionsNotifier,
+    AsyncValue<List<Map<String, dynamic>>>>((ref) => PositionsNotifier());
+
+// Provider for all signals categories (pending, confirmed, rejected)
+final signalCategoriesProvider =
+    FutureProvider<Map<String, List<SignalModel>>>((ref) async {
+  final viewModel = ref.read(signalViewModelProvider.notifier);
+  return await viewModel.getAllSignalCategories();
+});
+
+// Class for managing balance
 class BalanceNotifier extends StateNotifier<AsyncValue<double>> {
   bool _disposed = false;
 
   BalanceNotifier() : super(const AsyncValue.loading()) {
-    // Отложим инициализацию для предотвращения обновления в процессе построения дерева виджетов
+    // Delay initialization to prevent updating during widget tree building
     Future.microtask(() {
       if (!_disposed) {
         fetchBalance();
@@ -64,54 +62,50 @@ class BalanceNotifier extends StateNotifier<AsyncValue<double>> {
         final data = jsonDecode(response.body);
         final double balance = data['balance'].toDouble();
         state = AsyncValue.data(balance);
-        print('Баланс успешно получен: $balance');
+        print('Balance retrieved successfully: $balance');
       } else {
         state = AsyncValue.error(
-          'Ошибка при получении баланса: ${response.statusCode}',
+          'Error getting balance: ${response.statusCode}',
           StackTrace.current,
         );
-        print('Ошибка при получении баланса: HTTP ${response.statusCode}');
+        print('Error getting balance: HTTP ${response.statusCode}');
       }
     } catch (e, stackTrace) {
       if (!_disposed) {
         state = AsyncValue.error(e, stackTrace);
-        print('Ошибка при получении баланса: $e');
+        print('Error getting balance: $e');
       }
     }
   }
 
-  // Метод для сброса портфеля и баланса
+  // Method to reset portfolio and balance
   Future<bool> resetPortfolio() async {
-    if (_disposed) return false;
-
     try {
       final response = await http.post(Uri.parse('$serverUrl/portfolio/reset'));
-
-      if (_disposed) return false;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final double balance = data['balance'].toDouble();
         state = AsyncValue.data(balance);
-        print('Портфель сброшен, новый баланс: $balance');
+        print('Portfolio reset, new balance: $balance');
         return true;
       }
-      print('Ошибка при сбросе портфеля: HTTP ${response.statusCode}');
+      print('Error resetting portfolio: HTTP ${response.statusCode}');
       return false;
     } catch (e) {
-      print('Ошибка при сбросе портфеля: $e');
+      print('Error resetting portfolio: $e');
       return false;
     }
   }
 }
 
-// Класс для управления позициями
+// Class for managing positions
 class PositionsNotifier
     extends StateNotifier<AsyncValue<List<Map<String, dynamic>>>> {
   bool _disposed = false;
 
   PositionsNotifier() : super(const AsyncValue.loading()) {
-    // Отложим инициализацию для предотвращения обновления в процессе построения дерева виджетов
+    // Delay initialization to prevent updating during widget tree building
     Future.microtask(() {
       if (!_disposed) {
         fetchPositions();
@@ -142,23 +136,23 @@ class PositionsNotifier
         final List<Map<String, dynamic>> positions =
             positionsData.cast<Map<String, dynamic>>();
         state = AsyncValue.data(positions);
-        print('Позиции успешно получены: ${positions.length}');
+        print('Positions retrieved successfully: ${positions.length}');
       } else {
         state = AsyncValue.error(
-          'Ошибка при получении позиций: ${response.statusCode}',
+          'Error getting positions: ${response.statusCode}',
           StackTrace.current,
         );
-        print('Ошибка при получении позиций: HTTP ${response.statusCode}');
+        print('Error getting positions: HTTP ${response.statusCode}');
       }
     } catch (e, stackTrace) {
       if (!_disposed) {
         state = AsyncValue.error(e, stackTrace);
-        print('Ошибка при получении позиций: $e');
+        print('Error getting positions: $e');
       }
     }
   }
 
-  // Метод для закрытия позиции
+  // Method for closing a position
   Future<bool> closePosition(String ticker, double closePrice) async {
     if (_disposed) return false;
 
@@ -176,7 +170,7 @@ class PositionsNotifier
         final double balance = data['balance'].toDouble();
         final double pnl = data['pnl'].toDouble();
 
-        print('Позиция закрыта: $ticker, P&L: $pnl, новый баланс: $balance');
+        print('Position closed: $ticker, P&L: $pnl, new balance: $balance');
 
         Future.microtask(() {
           if (!_disposed) {
@@ -186,10 +180,10 @@ class PositionsNotifier
 
         return true;
       }
-      print('Ошибка при закрытии позиции: HTTP ${response.statusCode}');
+      print('Error closing position: HTTP ${response.statusCode}');
       return false;
     } catch (e) {
-      print('Ошибка при закрытии позиции: $e');
+      print('Error closing position: $e');
       return false;
     }
   }
@@ -200,7 +194,7 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
   bool _disposed = false;
 
   SignalViewModel(this._ref) : super(const AsyncValue.loading()) {
-    // Отложим инициализацию для предотвращения обновления в процессе построения дерева виджетов
+    // Delay initialization to prevent updating during widget tree building
     Future.microtask(() {
       if (!_disposed) {
         fetchSignals();
@@ -219,12 +213,12 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
   Future<void> addTicker(String ticker) async {
     if (_disposed) return;
 
-    // Делегируем добавление тикера в WatchlistNotifier
+    // Delegate adding ticker to WatchlistNotifier
     final success =
         await _ref.read(watchlistProvider.notifier).addTicker(ticker);
 
     if (success && !_disposed) {
-      // Обновляем сигналы после добавления тикера
+      // Update signals after adding ticker
       await fetchSignals();
     }
   }
@@ -245,18 +239,18 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
         state = AsyncValue.data(signals);
       } else {
         state = AsyncValue.error(
-            'Ошибка при получении сигналов: ${response.statusCode}',
+            'Error getting signals: ${response.statusCode}',
             StackTrace.current);
       }
     } catch (e, stackTrace) {
       if (!_disposed) {
-        print('Ошибка при получении сигналов: $e');
+        print('Error getting signals: $e');
         state = AsyncValue.error(e, stackTrace);
       }
     }
   }
 
-  // Метод для подтверждения сигнала
+  // Method for confirming a signal
   Future<bool> confirmSignal(String signalId, double quantity) async {
     if (_disposed) return false;
 
@@ -277,12 +271,12 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
         final data = jsonDecode(response.body);
         final double balance = data['balance'].toDouble();
 
-        // Обновляем состояние баланса и позиций
+        // Update balance and positions state
         Future.microtask(() {
           if (!_disposed) {
             _ref.read(balanceProvider.notifier).fetchBalance();
             _ref.read(positionsProvider.notifier).fetchPositions();
-            // После подтверждения обновляем сигналы
+            // Update signals after confirmation
             fetchSignals();
           }
         });
@@ -291,12 +285,12 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
       }
       return false;
     } catch (e) {
-      print('Ошибка при подтверждении сигнала: $e');
+      print('Error confirming signal: $e');
       return false;
     }
   }
 
-  // Метод для отклонения сигнала
+  // Method for rejecting a signal
   Future<bool> rejectSignal(String signalId) async {
     if (_disposed) return false;
 
@@ -313,7 +307,7 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
       if (_disposed) return false;
 
       if (response.statusCode == 200) {
-        // После отклонения обновляем сигналы
+        // Update signals after rejection
         Future.microtask(() {
           if (!_disposed) {
             fetchSignals();
@@ -323,12 +317,12 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
       }
       return false;
     } catch (e) {
-      print('Ошибка при отклонении сигнала: $e');
+      print('Error rejecting signal: $e');
       return false;
     }
   }
 
-  // Метод для получения всех сигналов по тикеру
+  // Method for getting all signals by ticker
   Future<List<SignalModel>> getSignalsByTicker(String ticker) async {
     try {
       final response = await http.get(Uri.parse('$serverUrl/signals/$ticker'));
@@ -340,12 +334,12 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
       }
       return [];
     } catch (e) {
-      print('Ошибка при получении сигналов по тикеру: $e');
+      print('Error getting signals by ticker: $e');
       return [];
     }
   }
 
-  // Метод для получения истории сигналов
+  // Method for getting signal history
   Future<List<SignalModel>> getSignalHistory() async {
     try {
       final response = await http.get(Uri.parse('$serverUrl/signals/history'));
@@ -357,34 +351,34 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
       }
       return [];
     } catch (e) {
-      print('Ошибка при получении истории сигналов: $e');
+      print('Error getting signal history: $e');
       return [];
     }
   }
 
-  // Метод для удаления тикера из мониторинга
+  // Method for removing ticker from monitoring
   Future<bool> removeTicker(String ticker) async {
     try {
       final response =
           await http.delete(Uri.parse('$serverUrl/monitor/$ticker'));
       if (response.statusCode == 200) {
-        // Обновляем список отслеживаемых тикеров
+        // Update watchlist
         await _ref.read(watchlistProvider.notifier).fetchWatchlist();
-        // После удаления обновляем сигналы
+        // Update signals after removal
         await fetchSignals();
         return true;
       }
       return false;
     } catch (e) {
-      print('Ошибка при удалении тикера: $e');
+      print('Error removing ticker: $e');
       return false;
     }
   }
 
-  // Метод для получения всех категорий сигналов
+  // Method for getting all signal categories
   Future<Map<String, List<SignalModel>>> getAllSignalCategories() async {
     try {
-      // Получаем активные сигналы (pending)
+      // Get active signals (pending)
       final pendingResponse = await http.get(Uri.parse('$serverUrl/signals'));
       List<SignalModel> pendingSignals = [];
 
@@ -394,7 +388,7 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
             pendingData.map((e) => SignalModel.fromJson(e)).toList();
       }
 
-      // Получаем историю (подтвержденные и отклоненные)
+      // Get history (confirmed and rejected)
       final historyResponse =
           await http.get(Uri.parse('$serverUrl/signals/history'));
       List<SignalModel> historySignals = [];
@@ -405,7 +399,7 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
             historyData.map((e) => SignalModel.fromJson(e)).toList();
       }
 
-      // Фильтруем сигналы по статусам
+      // Filter signals by status
       final List<SignalModel> confirmedSignals = historySignals
           .where((signal) => signal.status == 'confirmed')
           .toList();
@@ -414,14 +408,14 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
           .where((signal) => signal.status == 'rejected')
           .toList();
 
-      // Возвращаем словарь с категориями сигналов
+      // Return dictionary with signal categories
       return {
         'pending': pendingSignals,
         'confirmed': confirmedSignals,
         'rejected': rejectedSignals,
       };
     } catch (e) {
-      print('Ошибка при получении категорий сигналов: $e');
+      print('Error getting signal categories: $e');
       return {
         'pending': [],
         'confirmed': [],
@@ -431,12 +425,12 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
   }
 }
 
-// Класс для управления списком отслеживаемых тикеров
+// Class for managing watchlist
 class WatchlistNotifier extends StateNotifier<AsyncValue<List<String>>> {
   bool _disposed = false;
 
   WatchlistNotifier() : super(const AsyncValue.loading()) {
-    // Отложим инициализацию для предотвращения обновления в процессе построения дерева виджетов
+    // Delay initialization to prevent updating during widget tree building
     Future.microtask(() {
       if (!_disposed) {
         fetchWatchlist();
@@ -467,12 +461,12 @@ class WatchlistNotifier extends StateNotifier<AsyncValue<List<String>>> {
         state = AsyncValue.data(tickers);
       } else {
         state = AsyncValue.error(
-            'Ошибка при получении списка отслеживаемых тикеров: ${response.statusCode}',
+            'Error getting watchlist: ${response.statusCode}',
             StackTrace.current);
       }
     } catch (e, stackTrace) {
       if (!_disposed) {
-        print('Ошибка при получении списка отслеживаемых тикеров: $e');
+        print('Error getting watchlist: $e');
         state = AsyncValue.error(e, stackTrace);
       }
     }
@@ -500,7 +494,7 @@ class WatchlistNotifier extends StateNotifier<AsyncValue<List<String>>> {
       }
       return false;
     } catch (e) {
-      print('Ошибка при добавлении тикера: $e');
+      print('Error adding ticker: $e');
       return false;
     }
   }
@@ -524,7 +518,7 @@ class WatchlistNotifier extends StateNotifier<AsyncValue<List<String>>> {
       }
       return false;
     } catch (e) {
-      print('Ошибка при удалении тикера: $e');
+      print('Error removing ticker: $e');
       return false;
     }
   }

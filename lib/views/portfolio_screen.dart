@@ -130,7 +130,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
       // Показываем ошибку только если виджет все еще в дереве
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Ошибка загрузки портфеля: $e'),
+          content: Text('Failed to load portfolio: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -150,7 +150,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
         }
       }
     } catch (e) {
-      debugPrint('Ошибка при получении текущих цен: $e');
+      debugPrint('Error fetching current prices: $e');
     }
 
     return {};
@@ -181,7 +181,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
             const Icon(Icons.account_balance, size: 24),
             const SizedBox(width: 8),
             const Text(
-              'Портфель',
+              'Portfolio',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
@@ -190,12 +190,12 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70),
-            tooltip: 'Обновить данные',
+            tooltip: 'Refresh data',
             onPressed: loadPortfolio,
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.white70),
-            tooltip: 'Очистить портфель',
+            tooltip: 'Clear portfolio',
             onPressed: () {
               showDialog(
                 context: context,
@@ -257,7 +257,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                 color: Color(0xFFFFA726), size: 48),
             const SizedBox(height: 16),
             const Text(
-              'Очистить портфель?',
+              'Clear portfolio?',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -266,7 +266,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Все сделки будут удалены. Баланс будет сброшен до 1000\$',
+              'All trades will be deleted. Balance will be reset to 1000\$',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white70,
@@ -280,26 +280,62 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: TextButton.styleFrom(
-                    foregroundColor: Colors.white70,
-                  ),
-                  child: const Text('Отмена'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    clearPortfolio();
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Портфель очищен'),
-                        backgroundColor: Color(0xFF1E1E1E),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2D2D2D),
                     foregroundColor: Colors.white,
+                    backgroundColor: Colors.black12,
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: const Text('Очистить'),
+                  child: const Text('Cancel'),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF2D2D2D),
+                        const Color(0xFF1A1A1A),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      clearPortfolio();
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Portfolio cleared'),
+                          backgroundColor: Color(0xFF1E1E1E),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 25, vertical: 12),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    child: const Text('Clear'),
+                  ),
                 ),
               ],
             ),
@@ -343,7 +379,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
               children: [
                 // Баланс
                 _summaryItem(
-                  'Доступный баланс',
+                  'Available balance',
                   '\$${currentBalance.toStringAsFixed(2)}',
                   Colors.white,
                 ),
@@ -380,7 +416,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'P&L Портфеля',
+                                'P&L Portfolio',
                                 style: TextStyle(
                                   color: Colors.white70,
                                   fontSize: 12,
@@ -408,7 +444,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                     children: [
                       Expanded(
                         child: _summaryItem(
-                          'Стоимость позиций',
+                          'Positions value',
                           '\$${totalPortfolioValue.toStringAsFixed(2)}',
                           Colors.white70,
                         ),
@@ -416,7 +452,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                       const SizedBox(width: 24),
                       Expanded(
                         child: _summaryItem(
-                          'Общая стоимость',
+                          'Total value',
                           '\$${totalValue.toStringAsFixed(2)}',
                           Colors.white,
                         ),
@@ -469,7 +505,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                   size: 64, color: Colors.white30),
               const SizedBox(height: 24),
               const Text(
-                'Ваш портфель пуст',
+                'Your portfolio is empty',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w300,
@@ -479,20 +515,53 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Добавьте тикеры и подтвердите торговые сигналы, чтобы открыть виртуальные позиции',
+                'Add tickers and confirm trading signals to open virtual positions',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Colors.white60),
               ),
               const SizedBox(height: 32),
-              OutlinedButton.icon(
-                onPressed: loadPortfolio,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Обновить'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white30),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1A237E), Color(0xFF3949AB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1A237E).withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: OutlinedButton.icon(
+                  onPressed: loadPortfolio,
+                  icon: const Icon(
+                    Icons.refresh,
+                    size: 22,
+                    color: Colors.white,
+                  ),
+                  label: const Text(
+                    'Refresh',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white30, width: 1.5),
+                    backgroundColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -612,7 +681,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                         children: [
                           Expanded(
                             child: _tradeInfoItem(
-                              'Вход',
+                              'Entry',
                               '\$${entryPrice.toStringAsFixed(2)}',
                               Colors.white70,
                             ),
@@ -620,7 +689,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: _tradeInfoItem(
-                              'Текущая',
+                              'Current',
                               '\$${currentPrice.toStringAsFixed(2)}',
                               currentPrice > entryPrice
                                   ? const Color(0xFF66BB6A)
@@ -632,7 +701,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: _tradeInfoItem(
-                              'Кол-во',
+                              'Quantity',
                               quantity.toStringAsFixed(2),
                               Colors.white70,
                             ),
@@ -646,7 +715,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _tradeInfoItem(
-                            'Стоимость',
+                            'Value',
                             '\$${positionValue.toStringAsFixed(2)}',
                             Colors.white,
                           ),

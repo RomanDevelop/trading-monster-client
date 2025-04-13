@@ -120,7 +120,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                         const SizedBox(height: 24),
                         const Text(
-                          'Trading Signal Bot',
+                          'Trading Monster App',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -130,7 +130,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Умная торговля с аналитикой',
+                          'Smart trading with analytics',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.white.withOpacity(0.7),

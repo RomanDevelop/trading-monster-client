@@ -16,7 +16,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
   @override
   void initState() {
     super.initState();
-    // Откладываем вызов _refreshData после построения виджета
+    // Delay initialization until after widget build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _refreshData();
@@ -37,11 +37,11 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
     });
 
     try {
-      // Обновляем баланс и позиции
+      // Update balance and positions
       await ref.read(balanceProvider.notifier).fetchBalance();
       await ref.read(positionsProvider.notifier).fetchPositions();
     } catch (e) {
-      print('Ошибка при обновлении данных: $e');
+      print('Error updating data: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -52,29 +52,29 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
   }
 
   Future<void> _closePosition(String ticker, double closePrice) async {
-    // Запрашиваем подтверждение
+    // Request confirmation
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         title: const Text(
-          'Закрыть позицию',
+          'Close Position',
           style: TextStyle(color: Colors.white, fontSize: 18),
         ),
         content: Text(
-          'Вы уверены, что хотите закрыть позицию по $ticker по текущей цене \$${closePrice.toStringAsFixed(2)}?',
+          'Are you sure you want to close the position for $ticker at the current price \$${closePrice.toStringAsFixed(2)}?',
           style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child:
-                const Text('Отмена', style: TextStyle(color: Colors.white70)),
+                const Text('Cancel', style: TextStyle(color: Colors.white70)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Закрыть',
-                style: TextStyle(color: Color(0xFF3A79FF))),
+            child:
+                const Text('Close', style: TextStyle(color: Color(0xFF3A79FF))),
           ),
         ],
       ),
@@ -92,19 +92,19 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
             .read(positionsProvider.notifier)
             .closePosition(ticker, closePrice);
 
-        // Используем Future.delayed, чтобы дать время завершиться другим процессам
+        // Use Future.delayed to allow other processes to complete
         await Future.delayed(const Duration(milliseconds: 500));
 
         if (!mounted) return;
 
         if (success) {
-          // Обновляем баланс
+          // Update balance
           await ref.read(balanceProvider.notifier).fetchBalance();
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Позиция $ticker успешно закрыта'),
+                content: Text('Position for $ticker closed successfully'),
                 backgroundColor: Colors.green.shade700,
               ),
             );
@@ -113,7 +113,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Ошибка при закрытии позиции $ticker'),
+                content: Text('Error closing position for $ticker'),
                 backgroundColor: Colors.red.shade700,
               ),
             );
@@ -123,7 +123,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Ошибка: $e'),
+              content: Text('Error: $e'),
               backgroundColor: Colors.red.shade700,
             ),
           );
@@ -147,7 +147,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text(
-            'Портфель',
+            'Portfolio',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
           actions: [
@@ -180,7 +180,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
-                              'Активные позиции',
+                              'Active Positions',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -231,7 +231,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Текущий баланс',
+                  'Current Balance',
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.white70,
@@ -269,7 +269,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                 ),
               ),
               error: (error, _) => Text(
-                'Ошибка: $error',
+                'Error: $error',
                 style: const TextStyle(
                   fontSize: 16,
                   color: Colors.red,
@@ -279,28 +279,28 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                // Запрашиваем подтверждение
+                // Request confirmation
                 final bool? resetConfirm = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
                     backgroundColor: const Color(0xFF1A1A1A),
                     title: const Text(
-                      'Сбросить портфель',
+                      'Reset Portfolio',
                       style: TextStyle(color: Colors.white),
                     ),
                     content: const Text(
-                      'Вы уверены, что хотите сбросить портфель и вернуть исходный баланс? Все позиции будут закрыты.',
+                      'Are you sure you want to reset the portfolio and restore the initial balance? All positions will be closed.',
                       style: TextStyle(color: Colors.white70),
                     ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Отмена',
+                        child: const Text('Cancel',
                             style: TextStyle(color: Colors.white70)),
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(context, true),
-                        child: const Text('Сбросить',
+                        child: const Text('Reset',
                             style: TextStyle(color: Color(0xFF3A79FF))),
                       ),
                     ],
@@ -322,7 +322,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Портфель успешно сброшен'),
+                            content: Text('Portfolio reset successfully'),
                             backgroundColor: Colors.green,
                           ),
                         );
@@ -334,7 +334,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Ошибка при сбросе портфеля'),
+                            content: Text('Error resetting portfolio'),
                             backgroundColor: Colors.red,
                           ),
                         );
@@ -347,7 +347,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Ошибка: $e'),
+                          content: Text('Error: $e'),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -363,7 +363,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('Сбросить портфель'),
+              child: const Text('Reset Portfolio'),
             ),
           ],
         ),
@@ -406,11 +406,9 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
 
   String _getPositionCountText(int count) {
     if (count == 1) {
-      return 'позиция';
-    } else if (count >= 2 && count <= 4) {
-      return 'позиции';
+      return 'position';
     } else {
-      return 'позиций';
+      return 'positions';
     }
   }
 
@@ -433,7 +431,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Нет активных позиций',
+                    'No active positions',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -442,7 +440,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Перейдите в раздел "Сигналы" чтобы открыть позицию',
+                    'Go to the "Signals" section to open a position',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.white.withOpacity(0.5),
@@ -487,14 +485,14 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
               const Icon(Icons.error_outline, size: 50, color: Colors.red),
               const SizedBox(height: 16),
               Text(
-                'Ошибка при загрузке позиций: $error',
+                'Error loading positions: $error',
                 style: const TextStyle(color: Colors.red),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _refreshData,
-                child: const Text('Повторить'),
+                child: const Text('Retry'),
               ),
             ],
           ),
@@ -529,7 +527,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Заголовок с тикером и типом позиции
+          // Header with ticker and position type
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
@@ -595,22 +593,22 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
             ),
           ),
 
-          // Информация о позиции
+          // Position information
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Детали позиции
+                // Position details
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildDetailItem(
-                        'Количество', '${quantity.toStringAsFixed(2)}'),
+                        'Quantity', '${quantity.toStringAsFixed(2)}'),
                     _buildDetailItem(
-                        'Цена входа', '\$${price.toStringAsFixed(2)}'),
-                    _buildDetailItem(
-                        'Текущая цена', '\$${currentPrice.toStringAsFixed(2)}'),
+                        'Entry Price', '\$${price.toStringAsFixed(2)}'),
+                    _buildDetailItem('Current Price',
+                        '\$${currentPrice.toStringAsFixed(2)}'),
                   ],
                 ),
 
@@ -618,7 +616,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                 const Divider(color: Color(0xFF2A2A2A), height: 1),
                 const SizedBox(height: 16),
 
-                // Кнопка закрытия позиции
+                // Close position button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -631,7 +629,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text('Закрыть позицию'),
+                    child: const Text('Close Position'),
                   ),
                 ),
               ],

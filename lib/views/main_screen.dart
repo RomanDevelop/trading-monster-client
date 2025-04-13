@@ -16,7 +16,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentIndex = 0;
   final PageController _pageController = PageController();
 
-  // Создаем экземпляры экранов единожды
+  // Create screen instances once
   final List<Widget> _screens = [
     const SignalScreen(),
     const PortfolioScreen(),
@@ -90,28 +90,28 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                     Icons.bar_chart,
                     size: _currentIndex == 0 ? 24 : 22,
                   ),
-                  label: 'Сигналы',
+                  label: 'Signals',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(
                     Icons.account_balance_wallet,
                     size: _currentIndex == 1 ? 24 : 22,
                   ),
-                  label: 'Портфель',
+                  label: 'Portfolio',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(
                     Icons.history,
                     size: _currentIndex == 2 ? 24 : 22,
                   ),
-                  label: 'История',
+                  label: 'History',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(
                     Icons.radar,
                     size: _currentIndex == 3 ? 24 : 22,
                   ),
-                  label: 'Мониторинг',
+                  label: 'Monitoring',
                 ),
               ],
             ),
