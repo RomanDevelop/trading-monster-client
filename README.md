@@ -17,7 +17,3 @@ A cross-platform mobile app for receiving AI trading signals, confirming trades,
 ```bash
 flutter pub get
 ```
-
-```
-
-```
