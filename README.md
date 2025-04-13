@@ -1,17 +1,25 @@
-# client
+---
 
-A new Flutter project.
+### 📂 `flutter_app/README.md`
 
-## Getting Started
+````markdown
+# 📱 Trading Signal App (Flutter)
 
-This project is a starting point for a Flutter application.
+A cross-platform mobile app for receiving AI trading signals, confirming trades, and tracking balance in real time.
 
-A few resources to get you started if this is your first Flutter project:
+## 🔧 Tech Stack
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- **Flutter 3.19+/3.24+**
+- **Riverpod** – for scalable state management
+- **HTTP** – API communication with FastAPI backend
+- **Sqflite** – local signal & trade history storage
+- **Material Design** – clean and modern UI
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-# trading-monster-client
+## 🚀 Getting Started
+
+1. Install Flutter packages:
+
+```bash
+flutter pub get
+```
+````
