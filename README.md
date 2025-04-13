@@ -1,8 +1,3 @@
----
-
-### 📂 `flutter_app/README.md`
-
-````markdown
 # 📱 Trading Signal App (Flutter)
 
 A cross-platform mobile app for receiving AI trading signals, confirming trades, and tracking balance in real time.
@@ -22,4 +17,7 @@ A cross-platform mobile app for receiving AI trading signals, confirming trades,
 ```bash
 flutter pub get
 ```
-````
+
+```
+
+```
