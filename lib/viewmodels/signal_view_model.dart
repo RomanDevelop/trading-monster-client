@@ -41,7 +41,7 @@ class BalanceNotifier extends StateNotifier<AsyncValue<double>> {
     });
   }
 
-  final String serverUrl = 'http://127.0.0.1:8000';
+  final String serverUrl = 'http://127.0.0.1:8001/api/v1';
 
   @override
   void dispose() {
@@ -54,7 +54,8 @@ class BalanceNotifier extends StateNotifier<AsyncValue<double>> {
 
     try {
       state = const AsyncValue.loading();
-      final response = await http.get(Uri.parse('$serverUrl/balance'));
+      final response =
+          await http.get(Uri.parse('$serverUrl/portfolio/balance'));
 
       if (_disposed) return;
 
@@ -113,7 +114,7 @@ class PositionsNotifier
     });
   }
 
-  final String serverUrl = 'http://127.0.0.1:8000';
+  final String serverUrl = 'http://127.0.0.1:8001/api/v1';
 
   @override
   void dispose() {
@@ -126,7 +127,8 @@ class PositionsNotifier
 
     try {
       state = const AsyncValue.loading();
-      final response = await http.get(Uri.parse('$serverUrl/positions'));
+      final response =
+          await http.get(Uri.parse('$serverUrl/portfolio/positions'));
 
       if (_disposed) return;
 
@@ -152,13 +154,34 @@ class PositionsNotifier
     }
   }
 
+  // Method for getting positions history
+  Future<List<Map<String, dynamic>>> getPositionsHistory() async {
+    try {
+      final response =
+          await http.get(Uri.parse('$serverUrl/portfolio/positions/history'));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic> positionsData = data['positions_history'] ?? [];
+        final List<Map<String, dynamic>> positions =
+            positionsData.cast<Map<String, dynamic>>();
+        return positions;
+      }
+      print('Error getting positions history: HTTP ${response.statusCode}');
+      return [];
+    } catch (e) {
+      print('Error getting positions history: $e');
+      return [];
+    }
+  }
+
   // Method for closing a position
   Future<bool> closePosition(String ticker, double closePrice) async {
     if (_disposed) return false;
 
     try {
       final response = await http.post(
-        Uri.parse('$serverUrl/positions/close/$ticker'),
+        Uri.parse('$serverUrl/portfolio/positions/close/$ticker'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'close_price': closePrice}),
       );
@@ -202,7 +225,7 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
     });
   }
 
-  final String serverUrl = 'http://127.0.0.1:8000';
+  final String serverUrl = 'http://127.0.0.1:8001/api/v1';
 
   @override
   void dispose() {
@@ -360,7 +383,7 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
   Future<bool> removeTicker(String ticker) async {
     try {
       final response =
-          await http.delete(Uri.parse('$serverUrl/monitor/$ticker'));
+          await http.delete(Uri.parse('$serverUrl/tickers/$ticker'));
       if (response.statusCode == 200) {
         // Update watchlist
         await _ref.read(watchlistProvider.notifier).fetchWatchlist();
@@ -438,7 +461,7 @@ class WatchlistNotifier extends StateNotifier<AsyncValue<List<String>>> {
     });
   }
 
-  final String serverUrl = 'http://127.0.0.1:8000';
+  final String serverUrl = 'http://127.0.0.1:8001/api/v1';
 
   @override
   void dispose() {
@@ -451,7 +474,7 @@ class WatchlistNotifier extends StateNotifier<AsyncValue<List<String>>> {
 
     try {
       state = const AsyncValue.loading();
-      final response = await http.get(Uri.parse('$serverUrl/watchlist'));
+      final response = await http.get(Uri.parse('$serverUrl/tickers'));
 
       if (_disposed) return;
 
@@ -477,7 +500,7 @@ class WatchlistNotifier extends StateNotifier<AsyncValue<List<String>>> {
 
     try {
       final response = await http.post(
-        Uri.parse('$serverUrl/monitor'),
+        Uri.parse('$serverUrl/tickers'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'ticker': ticker}),
       );
@@ -504,7 +527,7 @@ class WatchlistNotifier extends StateNotifier<AsyncValue<List<String>>> {
 
     try {
       final response =
-          await http.delete(Uri.parse('$serverUrl/monitor/$ticker'));
+          await http.delete(Uri.parse('$serverUrl/tickers/$ticker'));
 
       if (_disposed) return false;
 

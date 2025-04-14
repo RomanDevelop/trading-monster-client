@@ -42,7 +42,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    Timer(const Duration(seconds: 2), () {
+    Timer(const Duration(seconds: 10), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
@@ -70,91 +70,108 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: Scaffold(
-        backgroundColor: const Color(0xFF050505),
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF050505), Color(0xFF121212)],
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Темный фон
+          Container(
+            decoration: const BoxDecoration(
+              color: Colors.black,
             ),
           ),
-          child: Center(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 100,
-                          height: 100,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF151515),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.3),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
+
+          // Структура с текстом вверху и внизу, и акулой по центру
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Верхняя часть - название приложения
+              Padding(
+                padding: const EdgeInsets.only(bottom: 25),
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    return FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: ScaleTransition(
+                        scale: _scaleAnimation,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: const [
+                            Text(
+                              'TRADING',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 2.0,
                               ),
-                            ],
-                          ),
-                          child: Image.asset(
-                            'assets/logo.png',
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(
-                                Icons.bar_chart,
-                                size: 60,
-                                color: Color(0xFF3A79FF),
-                              );
-                            },
-                          ),
+                            ),
+                            SizedBox(height: 5),
+                            Text(
+                              'MONSTER',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 2.0,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Trading Monster App',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
-                          ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Центральная часть - акула
+              Center(
+                child: AnimatedBuilder(
+                    animation: _controller,
+                    builder: (context, child) {
+                      return FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: Image.asset(
+                          'assets/images/shark.png',
+                          width: MediaQuery.of(context).size.width * 0.8,
+                          fit: BoxFit.contain,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Smart trading with analytics',
+                      );
+                    }),
+              ),
+
+              // Нижняя часть - подзаголовок
+              Padding(
+                padding: const EdgeInsets.only(top: 25),
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    return FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: ScaleTransition(
+                        scale: _scaleAnimation,
+                        child: Text(
+                          'SMART TRADING WITH ANALYTICS',
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.white.withOpacity(0.7),
+                            letterSpacing: 1.0,
                           ),
                         ),
-                        const SizedBox(height: 48),
-                        SizedBox(
-                          width: 36,
-                          height: 36,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              const Color(0xFF3A79FF).withOpacity(0.8),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ),
+        ],
       ),
     );
   }
