@@ -4,6 +4,7 @@ import 'signal_screen.dart';
 import 'portfolio_screen_dark.dart';
 import 'history_screen.dart';
 import 'watchlist_screen.dart';
+import '../viewmodels/signal_view_model.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -66,6 +67,11 @@ class _MainScreenState extends ConsumerState<MainScreen>
     setState(() {
       _currentIndex = index;
     });
+
+    // Если пользователь перешел на вкладку сигналов, сбрасываем счетчик
+    if (index == 0) {
+      ref.read(signalViewModelProvider.notifier).resetUnreadSignalsCount();
+    }
   }
 
   void _onItemTapped(int index) {
@@ -76,6 +82,11 @@ class _MainScreenState extends ConsumerState<MainScreen>
 
     // Сбрасываем анимацию
     _animationController.reset();
+
+    // Если пользователь переходит на вкладку сигналов, сбрасываем счетчик
+    if (index == 0) {
+      ref.read(signalViewModelProvider.notifier).resetUnreadSignalsCount();
+    }
 
     // Меняем страницу через PageController
     _pageController.animateToPage(
@@ -91,6 +102,8 @@ class _MainScreenState extends ConsumerState<MainScreen>
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    // Получаем количество непрочитанных сигналов
+    final unreadCount = ref.watch(unreadSignalsCountProvider);
 
     // Чтобы поддержать Hero-анимацию с акулой со сплеш-экрана,
     // добавляем невидимый Hero-виджет
@@ -159,7 +172,8 @@ class _MainScreenState extends ConsumerState<MainScreen>
                   elevation: 0,
                   items: [
                     BottomNavigationBarItem(
-                      icon: _buildNavIcon(Icons.bar_chart, 0),
+                      icon: _buildNavIconWithBadge(
+                          Icons.bar_chart, 0, unreadCount),
                       label: 'Signals',
                     ),
                     BottomNavigationBarItem(
@@ -201,6 +215,66 @@ class _MainScreenState extends ConsumerState<MainScreen>
         icon,
         size: isSelected ? 24 : 22,
       ),
+    );
+  }
+
+  // Виджет для создания иконки с индикатором непрочитанных сигналов
+  Widget _buildNavIconWithBadge(IconData icon, int index, int badgeCount) {
+    final bool isSelected = _currentIndex == index;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Основная иконка
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: EdgeInsets.all(isSelected ? 2.0 : 0.0),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? _tabColors[index].withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: isSelected ? 24 : 22,
+          ),
+        ),
+
+        // Бейдж с количеством непрочитанных сигналов
+        if (badgeCount > 0)
+          Positioned(
+            top: -5,
+            right: -5,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: _tabColors[0], // Синий цвет для сигналов
+                shape: badgeCount < 10 ? BoxShape.circle : BoxShape.rectangle,
+                borderRadius:
+                    badgeCount < 10 ? null : BorderRadius.circular(10),
+                border: Border.all(
+                  color: const Color(0xFF0A0A0A),
+                  width: 1.5,
+                ),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 16,
+                minHeight: 16,
+              ),
+              child: Center(
+                child: Text(
+                  badgeCount.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

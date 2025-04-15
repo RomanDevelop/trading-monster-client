@@ -25,6 +25,9 @@ final signalViewModelProvider =
     StateNotifierProvider<SignalViewModel, AsyncValue<List<SignalModel>>>(
         (ref) => SignalViewModel(ref));
 
+// Создаем провайдер для хранения количества непрочитанных сигналов
+final unreadSignalsCountProvider = StateProvider<int>((ref) => 0);
+
 final watchlistProvider =
     StateNotifierProvider<WatchlistNotifier, AsyncValue<List<String>>>(
         (ref) => WatchlistNotifier());
@@ -252,6 +255,24 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
     super.dispose();
   }
 
+  // Метод для обновления счетчика непрочитанных сигналов
+  void updateUnreadSignalsCount(List<SignalModel> signals) {
+    if (_disposed) return;
+
+    // Считаем только сигналы со статусом pending (ожидающие действия)
+    final int pendingCount =
+        signals.where((signal) => signal.status == 'pending').length;
+
+    // Обновляем значение в провайдере
+    _ref.read(unreadSignalsCountProvider.notifier).state = pendingCount;
+  }
+
+  // Метод для сброса счетчика непрочитанных сигналов
+  void resetUnreadSignalsCount() {
+    if (_disposed) return;
+    _ref.read(unreadSignalsCountProvider.notifier).state = 0;
+  }
+
   Future<void> addTicker(String ticker,
       {AnalysisModelType modelType = AnalysisModelType.rsiModel}) async {
     if (_disposed) return;
@@ -281,6 +302,9 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
         final List<SignalModel> signals =
             data.map((e) => SignalModel.fromJson(e)).toList();
         state = AsyncValue.data(signals);
+
+        // Обновляем счетчик непрочитанных сигналов
+        updateUnreadSignalsCount(signals);
       } else {
         state = AsyncValue.error(
             'Error getting signals: ${response.statusCode}',
