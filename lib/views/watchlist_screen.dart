@@ -65,8 +65,8 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                       color: colorScheme.primaryContainer.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: colorScheme.primary.withOpacity(0.3),
-                        width: 1,
+                        color: colorScheme.primary.withOpacity(0.5),
+                        width: 1.5,
                       ),
                     ),
                     child: Column(
@@ -112,7 +112,12 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: colorScheme.primary.withOpacity(0.7),
+                          width: 1.5,
+                        ),
                       ),
+                      elevation: 3,
                     ),
                   ),
                 ],
@@ -232,6 +237,10 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
             elevation: 2,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: colorScheme.primary.withOpacity(0.3),
+                width: 1.5,
+              ),
             ),
             child: Column(
               children: [
@@ -257,6 +266,10 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                     decoration: BoxDecoration(
                       color: colorScheme.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: colorScheme.primary.withOpacity(0.5),
+                        width: 1.5,
+                      ),
                     ),
                     child: Icon(
                       analysisModelType.icon,
@@ -278,7 +291,16 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
                   alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.blue.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
                   child: Row(
                     children: [
                       Icon(analysisModelType.icon,
