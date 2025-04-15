@@ -15,7 +15,7 @@ class SignalScreen extends ConsumerStatefulWidget {
 }
 
 class _SignalScreenState extends ConsumerState<SignalScreen>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
   // Keep this page in memory when switching tabs
   @override
   bool get wantKeepAlive => true;
@@ -26,15 +26,31 @@ class _SignalScreenState extends ConsumerState<SignalScreen>
   bool _isLoading = false;
   String? _error;
 
+  // Анимация для плавного появления контента
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
   // Initial ticker input for testing (for development)
   final TextEditingController _tickerController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // Delay initialization until after widget build
 
-    // Delay initialization after widget building
+    // Инициализация анимации
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Delay initialization until after widget build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _loadActivePositions();
@@ -45,6 +61,9 @@ class _SignalScreenState extends ConsumerState<SignalScreen>
             _loadActivePositions();
           }
         });
+
+        // Запускаем анимацию
+        _animationController.forward();
       }
     });
   }
@@ -101,72 +120,101 @@ class _SignalScreenState extends ConsumerState<SignalScreen>
   void dispose() {
     _timer?.cancel();
     _tickerController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final signalState = ref.watch(signalViewModelProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Trading Monster App',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              colorScheme.surface,
-              colorScheme.surface.withOpacity(0.9),
-            ],
+    return RepaintBoundary(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'Trading Monster App',
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Expanded(
-                child: signalState.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.error_outline,
-                              size: 48, color: Colors.redAccent),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Error: $e',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 16),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                colorScheme.surface,
+                colorScheme.surface.withOpacity(0.9),
+              ],
+            ),
+          ),
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 500),
+                      switchInCurve: Curves.easeInOut,
+                      switchOutCurve: Curves.easeInOut,
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0.0, 0.1),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
                           ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () {
-                              ref
-                                  .read(signalViewModelProvider.notifier)
-                                  .fetchSignals();
-                            },
-                            child: const Text('Retry'),
+                        );
+                      },
+                      child: signalState.when(
+                        loading: () => const Center(
+                          key: ValueKey('loading'),
+                          child: CircularProgressIndicator(),
+                        ),
+                        error: (e, _) => Center(
+                          key: ValueKey('error'),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error_outline,
+                                    size: 48, color: Colors.redAccent),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Error: $e',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    ref
+                                        .read(signalViewModelProvider.notifier)
+                                        .fetchSignals();
+                                  },
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
+                        ),
+                        data: (signals) => signals.isEmpty
+                            ? _buildEmptyState()
+                            : RepaintBoundary(
+                                child: _buildSignalsList(signals, colorScheme),
+                              ),
                       ),
                     ),
                   ),
-                  data: (signals) => signals.isEmpty
-                      ? _buildEmptyState()
-                      : _buildSignalsList(signals, colorScheme),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -204,247 +252,275 @@ class _SignalScreenState extends ConsumerState<SignalScreen>
   }
 
   Widget _buildSignalsList(List<dynamic> signals, ColorScheme colorScheme) {
-    return RepaintBoundary(
-      child: ListView.builder(
-        itemCount: signals.length,
-        padding: const EdgeInsets.only(top: 8, bottom: 16),
-        itemBuilder: (context, index) {
-          final signal = signals[index];
-          final hasActivePosition = _activePositions[signal.ticker] ?? false;
-          final positionData = _positionsData[signal.ticker];
+    return ListView.builder(
+      key: ValueKey('signals_list_${signals.length}'),
+      itemCount: signals.length,
+      padding: const EdgeInsets.only(top: 8, bottom: 16),
+      itemBuilder: (context, index) {
+        final signal = signals[index];
+        final hasActivePosition = _activePositions[signal.ticker] ?? false;
+        final positionData = _positionsData[signal.ticker];
 
-          // Определяем цвет в зависимости от типа сигнала
-          final Color signalColor = signal.signal.toLowerCase() == 'long'
-              ? Colors.greenAccent.shade700
-              : signal.signal.toLowerCase() == 'short'
-                  ? Colors.redAccent.shade700
-                  : colorScheme.primary;
+        // Анимация для появления элементов списка один за другим
+        return AnimatedBuilder(
+          animation: _animationController,
+          builder: (context, child) {
+            // Задержка появления каждого элемента
+            final double delay = index * 0.1;
+            final Animation<double> delayedAnimation = CurvedAnimation(
+              parent: _animationController,
+              curve: Interval(
+                delay.clamp(0.0, 0.9), // Ограничиваем задержку
+                (delay + 0.4).clamp(0.0, 1.0),
+                curve: Curves.easeOut,
+              ),
+            );
 
-          return RepaintBoundary(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Card(
-                elevation: 2,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: signalColor.withOpacity(0.3),
-                      width: 1,
+            return FadeTransition(
+              opacity: delayedAnimation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.0, 0.2),
+                  end: Offset.zero,
+                ).animate(delayedAnimation),
+                child: child,
+              ),
+            );
+          },
+          child: RepaintBoundary(
+            child: _buildSignalCard(
+                signal, hasActivePosition, positionData, colorScheme),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSignalCard(SignalModel signal, bool hasActivePosition,
+      Map<String, dynamic>? positionData, ColorScheme colorScheme) {
+    // Определяем цвет в зависимости от типа сигнала
+    final Color signalColor = signal.signal.toLowerCase() == 'long'
+        ? Colors.greenAccent.shade700
+        : signal.signal.toLowerCase() == 'short'
+            ? Colors.redAccent.shade700
+            : colorScheme.primary;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        elevation: 2,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: signalColor.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Тикер и тип сигнала
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: signalColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        signal.ticker,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: signalColor,
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Тикер и тип сигнала
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: signalColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                signal.ticker,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: signalColor,
-                                ),
-                              ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: signalColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        signal.signal.toUpperCase(),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: signalColor,
+                        ),
+                      ),
+                    ),
+                    if (hasActivePosition)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 0),
+                        child: Tooltip(
+                          message: 'Active position',
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.amber, width: 1),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: signalColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                signal.signal.toUpperCase(),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: signalColor,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.account_balance_wallet,
+                                  size: 14,
+                                  color: Colors.amber.shade800,
                                 ),
-                              ),
-                            ),
-                            if (hasActivePosition)
-                              Padding(
-                                padding: const EdgeInsets.only(left: 0),
-                                child: Tooltip(
-                                  message: 'Active position',
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.amber.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                          color: Colors.amber, width: 1),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.account_balance_wallet,
-                                          size: 14,
-                                          color: Colors.amber.shade800,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'In portfolio',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.amber.shade800,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'In portfolio',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.amber.shade800,
                                   ),
                                 ),
-                              ),
-                          ],
-                        ),
-
-                        // Статус сигнала
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: _buildSignalStatusBadge(signal, colorScheme),
-                        ),
-
-                        // Процент изменения
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: (signal.changePercent >= 0
-                                    ? Colors.green
-                                    : Colors.red)
-                                .withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'Change: ${signal.changePercent.toStringAsFixed(2)}%',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: signal.changePercent >= 0
-                                  ? Colors.green
-                                  : Colors.red,
+                              ],
                             ),
                           ),
                         ),
+                      ),
+                  ],
+                ),
 
-                        // Данные активной позиции (если есть)
-                        if (hasActivePosition && positionData != null)
-                          _buildPositionDetails(positionData, colorScheme),
+                // Статус сигнала
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: _buildSignalStatusBadge(signal, colorScheme),
+                ),
 
-                        // Сообщение сигнала
-                        const SizedBox(height: 12),
-                        Text(
-                          signal.message,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-
-                        // Детали цен
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _priceItem('Open', signal.open.toString()),
-                            _priceItem('Close', signal.close.toString()),
-                            _priceItem('EPS Growth',
-                                '${signal.epsGrowth.toStringAsFixed(2)}%'),
-                          ],
-                        ),
-
-                        // Кнопки действий в зависимости от статуса сигнала
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            // Для сигналов в ожидании (pending)
-                            if (signal.status == 'pending' &&
-                                !hasActivePosition) ...[
-                              // Кнопка отклонения
-                              OutlinedButton.icon(
-                                onPressed: () => _rejectSignal(signal),
-                                icon: const Icon(Icons.cancel_outlined),
-                                label: const Text('Reject'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.grey.shade700,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              // Кнопка подтверждения
-                              ElevatedButton.icon(
-                                onPressed: () => _showConfirmTradeDialog(
-                                  context,
-                                  signal,
-                                  isClosing: false,
-                                ),
-                                icon: const Icon(Icons.check_circle_outline),
-                                label: const Text('Confirm'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: signalColor,
-                                  foregroundColor: Colors.white,
-                                ),
-                              ),
-                            ]
-                            // Для подтвержденных сигналов с активной позицией
-                            else if (signal.status == 'confirmed' &&
-                                hasActivePosition) ...[
-                              // Кнопка закрытия позиции
-                              ElevatedButton.icon(
-                                onPressed: () => _showConfirmTradeDialog(
-                                  context,
-                                  signal,
-                                  isClosing: true,
-                                ),
-                                icon: const Icon(Icons.remove_circle_outline),
-                                label: const Text('Close Position'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey.shade700,
-                                  foregroundColor: Colors.white,
-                                ),
-                              ),
-                            ]
-                            // Для отклоненных сигналов или подтвержденных без позиции
-                            else if (signal.status == 'rejected' ||
-                                (signal.status == 'confirmed' &&
-                                    !hasActivePosition)) ...[
-                              // Информационное сообщение
-                              Text(
-                                signal.status == 'rejected'
-                                    ? 'Signal rejected'
-                                    : 'Position closed',
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
+                // Процент изменения
+                const SizedBox(height: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color:
+                        (signal.changePercent >= 0 ? Colors.green : Colors.red)
+                            .withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Change: ${signal.changePercent.toStringAsFixed(2)}%',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color:
+                          signal.changePercent >= 0 ? Colors.green : Colors.red,
                     ),
                   ),
                 ),
-              ),
+
+                // Данные активной позиции (если есть)
+                if (hasActivePosition && positionData != null)
+                  _buildPositionDetails(positionData, colorScheme),
+
+                // Сообщение сигнала
+                const SizedBox(height: 12),
+                Text(
+                  signal.message,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+
+                // Детали цен
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _priceItem('Open', signal.open.toString()),
+                    _priceItem('Close', signal.close.toString()),
+                    _priceItem('EPS Growth',
+                        '${signal.epsGrowth.toStringAsFixed(2)}%'),
+                  ],
+                ),
+
+                // Кнопки действий в зависимости от статуса сигнала
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // Для сигналов в ожидании (pending)
+                    if (signal.status == 'pending' && !hasActivePosition) ...[
+                      // Кнопка отклонения
+                      OutlinedButton.icon(
+                        onPressed: () => _rejectSignal(signal),
+                        icon: const Icon(Icons.cancel_outlined),
+                        label: const Text('Reject'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Кнопка подтверждения
+                      ElevatedButton.icon(
+                        onPressed: () => _showConfirmTradeDialog(
+                          context,
+                          signal,
+                          isClosing: false,
+                        ),
+                        icon: const Icon(Icons.check_circle_outline),
+                        label: const Text('Confirm'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: signalColor,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ]
+                    // Для подтвержденных сигналов с активной позицией
+                    else if (signal.status == 'confirmed' &&
+                        hasActivePosition) ...[
+                      // Кнопка закрытия позиции
+                      ElevatedButton.icon(
+                        onPressed: () => _showConfirmTradeDialog(
+                          context,
+                          signal,
+                          isClosing: true,
+                        ),
+                        icon: const Icon(Icons.remove_circle_outline),
+                        label: const Text('Close Position'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade700,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ]
+                    // Для отклоненных сигналов или подтвержденных без позиции
+                    else if (signal.status == 'rejected' ||
+                        (signal.status == 'confirmed' &&
+                            !hasActivePosition)) ...[
+                      // Информационное сообщение
+                      Text(
+                        signal.status == 'rejected'
+                            ? 'Signal rejected'
+                            : 'Position closed',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
