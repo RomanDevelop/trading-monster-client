@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../viewmodels/signal_view_model.dart';
+import 'add_ticker_screen.dart';
 
 class WatchlistScreen extends ConsumerStatefulWidget {
   const WatchlistScreen({Key? key}) : super(key: key);
@@ -10,14 +11,6 @@ class WatchlistScreen extends ConsumerStatefulWidget {
 }
 
 class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
-  final TextEditingController _tickerController = TextEditingController();
-
-  @override
-  void dispose() {
-    _tickerController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -97,53 +90,25 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                     ),
                   ),
 
-                  // Поле добавления тикера
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _tickerController,
-                          textCapitalization: TextCapitalization.characters,
-                          decoration: InputDecoration(
-                            labelText: 'Enter stock ticker',
-                            hintText: 'Example: AAPL, MSFT, GOOGL',
-                            prefixIcon:
-                                Icon(Icons.search, color: colorScheme.primary),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
+                  // Кнопка добавления тикера (без текстового поля)
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const AddTickerScreen(),
                         ),
+                      );
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add New Ticker'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        onPressed: () {
-                          final ticker =
-                              _tickerController.text.trim().toUpperCase();
-                          if (ticker.isNotEmpty) {
-                            ref
-                                .read(watchlistProvider.notifier)
-                                .addTicker(ticker);
-                            _tickerController.clear();
-
-                            // Показываем уведомление об успешном добавлении
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content:
-                                    Text('Ticker $ticker added for monitoring'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: colorScheme.primary,
-                          foregroundColor: colorScheme.onPrimary,
-                          minimumSize: const Size(110, 56),
-                        ),
-                        child: const Text('Add'),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),

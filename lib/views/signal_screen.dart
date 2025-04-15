@@ -305,6 +305,11 @@ class _SignalScreenState extends ConsumerState<SignalScreen>
             ? Colors.redAccent.shade700
             : colorScheme.primary;
 
+    // Получаем тип модели
+    final modelType = signal.modelType != null
+        ? getModelTypeFromString(signal.modelType)
+        : AnalysisModelType.rsiModel;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Card(
@@ -355,6 +360,34 @@ class _SignalScreenState extends ConsumerState<SignalScreen>
                           fontWeight: FontWeight.bold,
                           color: signalColor,
                         ),
+                      ),
+                    ),
+                    // Индикатор модели анализа
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            modelType.icon,
+                            size: 14,
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            modelType.displayName,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     if (hasActivePosition)

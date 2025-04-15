@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 class SignalModel {
   final String id; // Unique ID of the signal
   final String ticker;
@@ -10,6 +12,7 @@ class SignalModel {
   final String timestamp; // Time of receiving the signal
   final String status; // pending, confirmed, rejected
   final double? quantity; // Quantity for confirmed signals
+  final String? modelType; // Type of analysis model that generated the signal
 
   SignalModel({
     required this.id,
@@ -23,6 +26,7 @@ class SignalModel {
     required this.timestamp,
     required this.status,
     this.quantity,
+    this.modelType,
   });
 
   // Create model from JSON
@@ -39,6 +43,7 @@ class SignalModel {
       timestamp: json['timestamp'] as String,
       status: json['status'] as String,
       quantity: json['quantity'] != null ? json['quantity'].toDouble() : null,
+      modelType: json['model_type'] as String?,
     );
   }
 
@@ -56,6 +61,7 @@ class SignalModel {
       'timestamp': timestamp,
       'status': status,
       'quantity': quantity,
+      'model_type': modelType,
     };
   }
 
@@ -72,6 +78,7 @@ class SignalModel {
     String? timestamp,
     String? status,
     double? quantity,
+    String? modelType,
   }) {
     return SignalModel(
       id: id ?? this.id,
@@ -85,6 +92,77 @@ class SignalModel {
       timestamp: timestamp ?? this.timestamp,
       status: status ?? this.status,
       quantity: quantity ?? this.quantity,
+      modelType: modelType ?? this.modelType,
     );
+  }
+}
+
+// Перечисление типов моделей анализа
+enum AnalysisModelType {
+  rsiModel,
+  macdModel,
+  bollingerModel,
+}
+
+// Расширение для получения строкового представления типа модели
+extension AnalysisModelTypeExtension on AnalysisModelType {
+  String get value {
+    switch (this) {
+      case AnalysisModelType.rsiModel:
+        return 'RSI_MODEL';
+      case AnalysisModelType.macdModel:
+        return 'MACD_MODEL';
+      case AnalysisModelType.bollingerModel:
+        return 'BOLLINGER_MODEL';
+    }
+  }
+
+  String get displayName {
+    switch (this) {
+      case AnalysisModelType.rsiModel:
+        return 'RSI Model';
+      case AnalysisModelType.macdModel:
+        return 'MACD Model';
+      case AnalysisModelType.bollingerModel:
+        return 'Bollinger Bands Model';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case AnalysisModelType.rsiModel:
+        return 'Relative Strength Index анализирует импульс и скорость изменения цены';
+      case AnalysisModelType.macdModel:
+        return 'Moving Average Convergence Divergence использует скользящие средние для определения тренда';
+      case AnalysisModelType.bollingerModel:
+        return 'Bollinger Bands анализирует волатильность и отскоки от границ ценового диапазона';
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case AnalysisModelType.rsiModel:
+        return Icons.show_chart;
+      case AnalysisModelType.macdModel:
+        return Icons.trending_up;
+      case AnalysisModelType.bollingerModel:
+        return Icons.architecture;
+    }
+  }
+}
+
+// Получение типа модели из строки
+AnalysisModelType getModelTypeFromString(String? modelType) {
+  if (modelType == null) return AnalysisModelType.rsiModel;
+
+  switch (modelType) {
+    case 'RSI_MODEL':
+      return AnalysisModelType.rsiModel;
+    case 'MACD_MODEL':
+      return AnalysisModelType.macdModel;
+    case 'BOLLINGER_MODEL':
+      return AnalysisModelType.bollingerModel;
+    default:
+      return AnalysisModelType.rsiModel;
   }
 }

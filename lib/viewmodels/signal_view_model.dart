@@ -233,12 +233,14 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
     super.dispose();
   }
 
-  Future<void> addTicker(String ticker) async {
+  Future<void> addTicker(String ticker,
+      {AnalysisModelType modelType = AnalysisModelType.rsiModel}) async {
     if (_disposed) return;
 
     // Delegate adding ticker to WatchlistNotifier
-    final success =
-        await _ref.read(watchlistProvider.notifier).addTicker(ticker);
+    final success = await _ref
+        .read(watchlistProvider.notifier)
+        .addTicker(ticker, modelType: modelType);
 
     if (success && !_disposed) {
       // Update signals after adding ticker
@@ -495,14 +497,15 @@ class WatchlistNotifier extends StateNotifier<AsyncValue<List<String>>> {
     }
   }
 
-  Future<bool> addTicker(String ticker) async {
+  Future<bool> addTicker(String ticker,
+      {AnalysisModelType modelType = AnalysisModelType.rsiModel}) async {
     if (_disposed) return false;
 
     try {
       final response = await http.post(
         Uri.parse('$serverUrl/tickers'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'ticker': ticker}),
+        body: jsonEncode({'ticker': ticker, 'model_type': modelType.value}),
       );
 
       if (_disposed) return false;
