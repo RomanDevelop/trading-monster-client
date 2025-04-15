@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../viewmodels/signal_view_model.dart';
+import '../models/signal_model.dart';
 import 'add_ticker_screen.dart';
 
 class WatchlistScreen extends ConsumerStatefulWidget {
@@ -15,6 +16,7 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final watchlistState = ref.watch(watchlistProvider);
+    final watchlistDetailsState = ref.watch(watchlistDetailsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -29,6 +31,9 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
             tooltip: 'Refresh List',
             onPressed: () {
               ref.read(watchlistProvider.notifier).fetchWatchlist();
+              ref
+                  .read(watchlistDetailsProvider.notifier)
+                  .fetchWatchlistDetails();
             },
           ),
         ],
@@ -134,6 +139,9 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                       ElevatedButton(
                         onPressed: () {
                           ref.read(watchlistProvider.notifier).fetchWatchlist();
+                          ref
+                              .read(watchlistDetailsProvider.notifier)
+                              .fetchWatchlistDetails();
                         },
                         child: const Text('Retry'),
                       ),
@@ -142,7 +150,8 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                 ),
                 data: (tickers) => tickers.isEmpty
                     ? _buildEmptyState()
-                    : _buildTickersList(tickers, colorScheme),
+                    : _buildTickersList(
+                        tickers, colorScheme, watchlistDetailsState),
               ),
             ),
           ],
@@ -182,12 +191,40 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
     );
   }
 
-  Widget _buildTickersList(List<String> tickers, ColorScheme colorScheme) {
+  Widget _buildTickersList(List<String> tickers, ColorScheme colorScheme,
+      AsyncValue<List<WatchlistItem>> watchlistDetailsState) {
     return ListView.builder(
       itemCount: tickers.length,
       padding: const EdgeInsets.all(16),
       itemBuilder: (context, index) {
         final ticker = tickers[index];
+
+        // Получаем тип модели для текущего тикера
+        String modelType = 'RSI_MODEL';
+        AnalysisModelType analysisModelType = AnalysisModelType.rsiModel;
+
+        if (watchlistDetailsState is AsyncData) {
+          final details = watchlistDetailsState.valueOrNull;
+          if (details != null) {
+            final item = details.firstWhere(
+              (item) => item.ticker == ticker,
+              orElse: () =>
+                  WatchlistItem(ticker: ticker, modelType: 'RSI_MODEL'),
+            );
+            modelType = item.modelType;
+            analysisModelType = getModelTypeFromString(modelType);
+          }
+        } else {
+          // Временное решение для демонстрации, пока серверный API не реализован
+          // В реальном приложении эти данные должны приходить с сервера
+          // Назначаем модель в зависимости от индекса, чтобы были разные модели
+          final modelTypes = [
+            AnalysisModelType.rsiModel,
+            AnalysisModelType.macdModel,
+            AnalysisModelType.bollingerModel
+          ];
+          analysisModelType = modelTypes[index % modelTypes.length];
+        }
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -196,39 +233,69 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(16),
-              title: Text(
-                ticker,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+            child: Column(
+              children: [
+                ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  title: Text(
+                    ticker,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Row(
+                    children: [
+                      const Text(
+                        'Currently monitoring',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      analysisModelType.icon,
+                      color: colorScheme.primary,
+                      size: 28,
+                    ),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    color: Colors.redAccent,
+                    tooltip: 'Remove from monitoring',
+                    onPressed: () {
+                      _showDeleteConfirmDialog(ticker);
+                    },
+                  ),
                 ),
-              ),
-              subtitle: const Text(
-                'Currently monitoring',
-                style: TextStyle(fontSize: 14),
-              ),
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+
+                // Модель анализа
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    children: [
+                      Icon(analysisModelType.icon,
+                          size: 16, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Text(
+                        analysisModelType.displayName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.blue,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Icon(
-                  Icons.trending_up,
-                  color: colorScheme.primary,
-                  size: 28,
-                ),
-              ),
-              trailing: IconButton(
-                icon: const Icon(Icons.remove_circle_outline),
-                color: Colors.redAccent,
-                tooltip: 'Remove from monitoring',
-                onPressed: () {
-                  _showDeleteConfirmDialog(ticker);
-                },
-              ),
+              ],
             ),
           ),
         );
@@ -253,6 +320,9 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
             TextButton(
               onPressed: () {
                 ref.read(watchlistProvider.notifier).removeTicker(ticker);
+                ref
+                    .read(watchlistDetailsProvider.notifier)
+                    .removeTicker(ticker);
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

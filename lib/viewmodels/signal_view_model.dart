@@ -5,6 +5,21 @@ import 'package:http/http.dart' as http;
 import '../models/signal_model.dart';
 import '../services/notification_service.dart';
 
+// Класс для хранения информации о тикере и модели анализа
+class WatchlistItem {
+  final String ticker;
+  final String modelType;
+
+  WatchlistItem({required this.ticker, required this.modelType});
+
+  factory WatchlistItem.fromJson(Map<String, dynamic> json) {
+    return WatchlistItem(
+      ticker: json['ticker'] as String,
+      modelType: json['model_type'] as String? ?? 'RSI_MODEL',
+    );
+  }
+}
+
 // Providers
 final signalViewModelProvider =
     StateNotifierProvider<SignalViewModel, AsyncValue<List<SignalModel>>>(
@@ -13,6 +28,10 @@ final signalViewModelProvider =
 final watchlistProvider =
     StateNotifierProvider<WatchlistNotifier, AsyncValue<List<String>>>(
         (ref) => WatchlistNotifier());
+
+// Новый провайдер для детальной информации о watchlist
+final watchlistDetailsProvider = StateNotifierProvider<WatchlistDetailsNotifier,
+    AsyncValue<List<WatchlistItem>>>((ref) => WatchlistDetailsNotifier());
 
 final balanceProvider =
     StateNotifierProvider<BalanceNotifier, AsyncValue<double>>(
@@ -547,5 +566,121 @@ class WatchlistNotifier extends StateNotifier<AsyncValue<List<String>>> {
       print('Error removing ticker: $e');
       return false;
     }
+  }
+}
+
+// Class for managing watchlist with details
+class WatchlistDetailsNotifier
+    extends StateNotifier<AsyncValue<List<WatchlistItem>>> {
+  bool _disposed = false;
+
+  WatchlistDetailsNotifier() : super(const AsyncValue.loading()) {
+    // Delay initialization to prevent updating during widget tree building
+    Future.microtask(() {
+      if (!_disposed) {
+        fetchWatchlistDetails();
+      }
+    });
+  }
+
+  final String serverUrl = 'http://127.0.0.1:8001/api/v1';
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  Future<void> fetchWatchlistDetails() async {
+    if (_disposed) return;
+
+    try {
+      state = const AsyncValue.loading();
+      final response = await http.get(Uri.parse('$serverUrl/tickers/details'));
+
+      if (_disposed) return;
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        final List<WatchlistItem> tickers = data
+            .map((e) => WatchlistItem.fromJson(e as Map<String, dynamic>))
+            .toList();
+        state = AsyncValue.data(tickers);
+      } else {
+        state = AsyncValue.error(
+            'Error getting watchlist details: ${response.statusCode}',
+            StackTrace.current);
+      }
+    } catch (e, stackTrace) {
+      if (!_disposed) {
+        print('Error getting watchlist details: $e');
+        state = AsyncValue.error(e, stackTrace);
+      }
+    }
+  }
+
+  Future<bool> addTicker(String ticker,
+      {AnalysisModelType modelType = AnalysisModelType.rsiModel}) async {
+    if (_disposed) return false;
+
+    try {
+      final response = await http.post(
+        Uri.parse('$serverUrl/tickers'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'ticker': ticker, 'model_type': modelType.value}),
+      );
+
+      if (_disposed) return false;
+
+      if (response.statusCode == 200) {
+        Future.microtask(() {
+          if (!_disposed) {
+            fetchWatchlistDetails();
+          }
+        });
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error adding ticker: $e');
+      return false;
+    }
+  }
+
+  Future<bool> removeTicker(String ticker) async {
+    if (_disposed) return false;
+
+    try {
+      final response =
+          await http.delete(Uri.parse('$serverUrl/tickers/$ticker'));
+
+      if (_disposed) return false;
+
+      if (response.statusCode == 200) {
+        Future.microtask(() {
+          if (!_disposed) {
+            fetchWatchlistDetails();
+          }
+        });
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error removing ticker: $e');
+      return false;
+    }
+  }
+
+  // Получить тип модели для тикера
+  String getModelTypeForTicker(String ticker) {
+    final items = state.valueOrNull;
+    if (items == null) return 'RSI_MODEL';
+
+    final item = items.firstWhere(
+      (item) => item.ticker == ticker,
+      orElse: () => WatchlistItem(ticker: ticker, modelType: 'RSI_MODEL'),
+    );
+
+    return item.modelType;
   }
 }
