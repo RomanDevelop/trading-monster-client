@@ -102,6 +102,7 @@ enum AnalysisModelType {
   rsiModel,
   macdModel,
   bollingerModel,
+  avModel, // Alpha Vantage model
 }
 
 // Расширение для получения строкового представления типа модели
@@ -114,6 +115,8 @@ extension AnalysisModelTypeExtension on AnalysisModelType {
         return 'MACD_MODEL';
       case AnalysisModelType.bollingerModel:
         return 'BOLLINGER_MODEL';
+      case AnalysisModelType.avModel:
+        return 'AV_MODEL';
     }
   }
 
@@ -125,6 +128,8 @@ extension AnalysisModelTypeExtension on AnalysisModelType {
         return 'MACD Model';
       case AnalysisModelType.bollingerModel:
         return 'Bollinger Bands Model';
+      case AnalysisModelType.avModel:
+        return 'Alpha Vantage Model';
     }
   }
 
@@ -136,6 +141,8 @@ extension AnalysisModelTypeExtension on AnalysisModelType {
         return 'Moving Average Convergence Divergence использует скользящие средние для определения тренда';
       case AnalysisModelType.bollingerModel:
         return 'Bollinger Bands анализирует волатильность и отскоки от границ ценового диапазона';
+      case AnalysisModelType.avModel:
+        return 'Alpha Vantage анализирует данные котировок акций с использованием API Alpha Vantage';
     }
   }
 
@@ -147,6 +154,8 @@ extension AnalysisModelTypeExtension on AnalysisModelType {
         return Icons.trending_up;
       case AnalysisModelType.bollingerModel:
         return Icons.architecture;
+      case AnalysisModelType.avModel:
+        return Icons.analytics;
     }
   }
 }
@@ -162,6 +171,8 @@ AnalysisModelType getModelTypeFromString(String? modelType) {
       return AnalysisModelType.macdModel;
     case 'BOLLINGER_MODEL':
       return AnalysisModelType.bollingerModel;
+    case 'AV_MODEL':
+      return AnalysisModelType.avModel;
     default:
       return AnalysisModelType.rsiModel;
   }

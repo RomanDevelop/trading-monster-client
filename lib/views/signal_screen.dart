@@ -54,7 +54,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen>
       if (mounted) {
         _loadActivePositions();
         ref.read(signalViewModelProvider.notifier).fetchSignals();
-        _timer = Timer.periodic(const Duration(seconds: 15), (_) {
+        _timer = Timer.periodic(const Duration(minutes: 5), (_) {
           if (mounted) {
             ref.read(signalViewModelProvider.notifier).fetchSignals();
             _loadActivePositions();
@@ -154,6 +154,43 @@ class _SignalScreenState extends ConsumerState<SignalScreen>
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
+                  // Информационное сообщение о частоте обновлений
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: colorScheme.primary.withOpacity(0.5),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.info_outline,
+                                color: colorScheme.primary, size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Информация:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Данные обновляются каждые 5 минут из-за ограничений API Alpha Vantage. Рекомендуется добавлять не более 20 тикеров для мониторинга.',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
                   Expanded(
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 500),

@@ -88,7 +88,7 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          'The system tracks and sends signals only for tickers that you explicitly add to this list.',
+                          'The system tracks and sends signals only for tickers that you explicitly add to this list. Due to Alpha Vantage API limitations, data updates every 5 minutes and the recommended maximum is 20 tickers.',
                           style: TextStyle(fontSize: 13),
                         ),
                       ],
@@ -98,6 +98,20 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                   // Кнопка добавления тикера (без текстового поля)
                   ElevatedButton.icon(
                     onPressed: () {
+                      // Проверка максимального количества тикеров (20)
+                      final currentTickers = ref.read(watchlistProvider);
+                      if (currentTickers is AsyncData &&
+                          (currentTickers.value?.length ?? 0) >= 20) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Достигнут лимит тикеров (20). Удалите неиспользуемые тикеры.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) => const AddTickerScreen(),
