@@ -105,7 +105,7 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
-                                'Достигнут лимит тикеров (20). Удалите неиспользуемые тикеры.'),
+                                'Ticker limit reached (20). Please remove unused tickers.'),
                             backgroundColor: Colors.red,
                           ),
                         );

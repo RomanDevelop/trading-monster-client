@@ -175,7 +175,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen>
                                 color: colorScheme.primary, size: 18),
                             const SizedBox(width: 8),
                             Text(
-                              'Информация:',
+                              'Information:',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: colorScheme.primary,
@@ -185,7 +185,7 @@ class _SignalScreenState extends ConsumerState<SignalScreen>
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          'Данные обновляются каждые 5 минут из-за ограничений API Alpha Vantage. Рекомендуется добавлять не более 20 тикеров для мониторинга.',
+                          'Data is updated every 5 minutes due to Alpha Vantage API limitations. It is recommended to add no more than 20 tickers for monitoring.',
                           style: TextStyle(fontSize: 13),
                         ),
                       ],
