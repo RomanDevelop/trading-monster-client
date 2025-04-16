@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:client/views/history_screen.dart';
 import 'package:client/views/portfolio_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

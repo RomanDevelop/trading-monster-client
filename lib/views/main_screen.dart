@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'signal_screen.dart';
 import 'portfolio_screen_dark.dart';
-import 'history_screen.dart';
 import 'watchlist_screen.dart';
 import '../viewmodels/signal_view_model.dart';
 
@@ -24,7 +23,6 @@ class _MainScreenState extends ConsumerState<MainScreen>
   final List<Color> _tabColors = [
     const Color(0xFF3A79FF), // Signals - Blue
     const Color(0xFF44C97C), // Portfolio - Green
-    const Color(0xFFE6A537), // History - Amber
     const Color(0xFF9C69F8), // Monitoring - Purple
   ];
 
@@ -32,7 +30,6 @@ class _MainScreenState extends ConsumerState<MainScreen>
   final List<Widget> _screens = [
     const SignalScreen(),
     const PortfolioScreen(),
-    const HistoryScreen(),
     const WatchlistScreen(),
   ];
 
@@ -181,11 +178,7 @@ class _MainScreenState extends ConsumerState<MainScreen>
                       label: 'Portfolio',
                     ),
                     BottomNavigationBarItem(
-                      icon: _buildNavIcon(Icons.history, 2),
-                      label: 'History',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: _buildNavIcon(Icons.radar, 3),
+                      icon: _buildNavIcon(Icons.radar, 2),
                       label: 'Monitoring',
                     ),
                   ],
