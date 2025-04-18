@@ -5,23 +5,50 @@ import '../models/signal_model.dart';
 import 'add_ticker_screen.dart';
 
 class WatchlistScreen extends ConsumerStatefulWidget {
-  const WatchlistScreen({Key? key}) : super(key: key);
+  const WatchlistScreen({super.key});
 
   @override
   ConsumerState<WatchlistScreen> createState() => _WatchlistScreenState();
 }
 
 class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
+  // Метод для обновления деталей watchlist
+  void _refreshWatchlistDetails() {
+    ref.read(watchlistDetailsProvider.notifier).fetchWatchlistDetails();
+  }
+
+  // Метод для открытия экрана добавления тикера
+  Future<void> _addTicker() async {
+    // Debug output for the watchlist before adding
+    print(
+        '📋 Watchlist до добавления тикера: ${ref.read(watchlistProvider).value?.length ?? 0} тикеров');
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AddTickerScreen(),
+      ),
+    );
+
+    if (result == true) {
+      print('✅ Tикер успешно добавлен, обновляем watchlistDetails');
+      // Обновляем детали watchlist после добавления нового тикера
+      _refreshWatchlistDetails();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final watchlistState = ref.watch(watchlistProvider);
     final watchlistDetailsState = ref.watch(watchlistDetailsProvider);
+    // Добавляем слежение за состоянием близости сигналов
+    final signalProximityState = ref.watch(signalProximityProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          '📊 Ticker Monitoring',
+          'Ticker Monitoring',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -31,9 +58,9 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
             tooltip: 'Refresh List',
             onPressed: () {
               ref.read(watchlistProvider.notifier).fetchWatchlist();
-              ref
-                  .read(watchlistDetailsProvider.notifier)
-                  .fetchWatchlistDetails();
+              _refreshWatchlistDetails();
+              // Добавляем обновление данных о близости сигналов
+              ref.read(signalProximityProvider.notifier).fetchSignalProximity();
             },
           ),
         ],
@@ -88,7 +115,7 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          'The system tracks and sends signals only for tickers that you explicitly add to this list. Due to Alpha Vantage API limitations, data updates every 5 minutes and the recommended maximum is 20 tickers.',
+                          'With the standard subscription, data updates every 5 minutes and the recommended maximum is 20 tickers.',
                           style: TextStyle(fontSize: 13),
                         ),
                       ],
@@ -112,11 +139,7 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                         return;
                       }
 
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const AddTickerScreen(),
-                        ),
-                      );
+                      _addTicker();
                     },
                     icon: const Icon(Icons.add),
                     label: const Text('Add New Ticker'),
@@ -212,6 +235,26 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
 
   Widget _buildTickersList(List<String> tickers, ColorScheme colorScheme,
       AsyncValue<List<WatchlistItem>> watchlistDetailsState) {
+    // Логирование состояния деталей watchlist
+    print(
+        '📌 Состояние watchlistDetailsState: ${watchlistDetailsState.runtimeType}');
+    if (watchlistDetailsState is AsyncData) {
+      final data = watchlistDetailsState.value;
+      if (data != null) {
+        print('📌 watchlistDetailsState содержит ${data.length} элементов:');
+        for (var item in data) {
+          print('  - ${item.ticker}: ${item.modelType}');
+        }
+      } else {
+        print('📌 watchlistDetailsState.value равен null');
+      }
+    } else if (watchlistDetailsState is AsyncError) {
+      print(
+          '📌 watchlistDetailsState содержит ошибку: ${watchlistDetailsState.error}');
+    } else {
+      print('📌 watchlistDetailsState в состоянии загрузки');
+    }
+
     return ListView.builder(
       itemCount: tickers.length,
       padding: const EdgeInsets.all(16),
@@ -231,7 +274,11 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                   WatchlistItem(ticker: ticker, modelType: 'RSI_MODEL'),
             );
             modelType = item.modelType;
+            print(
+                '🔎 Отображение тикера $ticker с моделью из сервера: $modelType');
             analysisModelType = getModelTypeFromString(modelType);
+            print(
+                '🔎 Преобразовано в Dart-объект: ${analysisModelType.displayName}');
           }
         } else {
           // Временное решение для демонстрации, пока серверный API не реализован
@@ -239,7 +286,7 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
           // Назначаем модель в зависимости от индекса, чтобы были разные модели
           final modelTypes = [
             AnalysisModelType.rsiModel,
-            AnalysisModelType.macdModel,
+            //       AnalysisModelType.macdModel,
             AnalysisModelType.bollingerModel
           ];
           analysisModelType = modelTypes[index % modelTypes.length];
@@ -331,6 +378,44 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
                     ],
                   ),
                 ),
+
+                // Индикатор близости сигнала
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  margin:
+                      const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.grey.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Signal Proximity:',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          _buildProximityPercentage(ticker),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _buildProximityIndicator(ticker),
+                      const SizedBox(height: 8),
+                      _buildProximityDescription(ticker, analysisModelType),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -371,6 +456,73 @@ class _WatchlistScreenState extends ConsumerState<WatchlistScreen> {
           ],
         );
       },
+    );
+  }
+
+  // Добавим методы для создания индикатора близости сигнала
+  Widget _buildProximityPercentage(String ticker) {
+    // Получаем значение близости сигнала из провайдера
+    final proximityValue = ref
+        .read(signalProximityProvider.notifier)
+        .getProximityValueForTicker(ticker);
+
+    Color textColor = Colors.grey;
+    if (proximityValue > 75) {
+      textColor = Colors.red;
+    } else if (proximityValue > 50) {
+      textColor = Colors.orange;
+    } else if (proximityValue > 25) {
+      textColor = Colors.blue;
+    }
+
+    return Text(
+      '$proximityValue%',
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: textColor,
+      ),
+    );
+  }
+
+  Widget _buildProximityIndicator(String ticker) {
+    // Получаем значение близости сигнала из провайдера
+    final proximityValue = ref
+        .read(signalProximityProvider.notifier)
+        .getProximityValueForTicker(ticker);
+
+    Color progressColor = Colors.grey;
+    if (proximityValue > 75) {
+      progressColor = Colors.red;
+    } else if (proximityValue > 50) {
+      progressColor = Colors.orange;
+    } else if (proximityValue > 25) {
+      progressColor = Colors.blue;
+    }
+
+    return LinearProgressIndicator(
+      value: proximityValue / 100,
+      backgroundColor: Colors.grey.withOpacity(0.2),
+      valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+      minHeight: 8,
+      borderRadius: BorderRadius.circular(4),
+    );
+  }
+
+  Widget _buildProximityDescription(
+      String ticker, AnalysisModelType modelType) {
+    // Получаем описание близости сигнала из провайдера
+    final description = ref
+        .read(signalProximityProvider.notifier)
+        .getProximityDescriptionForTicker(ticker);
+
+    return Text(
+      description,
+      style: const TextStyle(
+        fontSize: 12,
+        fontStyle: FontStyle.italic,
+        color: Colors.grey,
+      ),
     );
   }
 }
