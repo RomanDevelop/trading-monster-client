@@ -246,34 +246,42 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
     return Dialog(
       backgroundColor: const Color(0xFF151515),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.warning_amber_rounded,
-                color: Color(0xFFFFA726), size: 48),
-            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2D2D2D),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.warning_amber_rounded,
+                  color: Color(0xFFFFA726), size: 48),
+            ),
+            const SizedBox(height: 20),
             const Text(
               'Clear portfolio?',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 20,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             const Text(
               'All trades will be deleted. Balance will be reset to 1000\$',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white70,
-                fontSize: 14,
+                fontSize: 15,
+                height: 1.4,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -281,26 +289,26 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                   onPressed: () => Navigator.of(context).pop(),
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.white,
-                    backgroundColor: Colors.black12,
+                    backgroundColor: const Color(0xFF1A1A1A),
                     textStyle: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
+                        horizontal: 24, vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   child: const Text('Cancel'),
                 ),
                 Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: const LinearGradient(
                       colors: [
-                        const Color(0xFF2D2D2D),
-                        const Color(0xFF1A1A1A),
+                        Color(0xFF2D2D2D),
+                        Color(0xFF1A1A1A),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -328,7 +336,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 25, vertical: 12),
+                          horizontal: 30, vertical: 14),
                       textStyle: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -359,13 +367,13 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
     final double totalValue = currentBalance + totalPortfolioValue;
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
       child: RepaintBoundary(
         child: Card(
-          elevation: 0,
+          elevation: 4,
           color: const Color(0xFF111111),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             side: const BorderSide(
               color: Color(0xFF333333),
               width: 1,
@@ -373,10 +381,50 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
           ),
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF1A1A1A),
+                  Color(0xFF0D0D0D),
+                ],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Заголовок карточки
+                const Row(
+                  children: [
+                    Icon(
+                      Icons.account_balance_wallet,
+                      color: Colors.white60,
+                      size: 20,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'PORTFOLIO SUMMARY',
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.0,
+                      ),
+                    )
+                  ],
+                ),
+                const SizedBox(height: 20),
+
                 // Баланс
                 _summaryItem(
                   'Available balance',
@@ -386,19 +434,28 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
 
                 // Прибыль/убыток портфеля
                 if (trades.isNotEmpty) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF222222),
-                      borderRadius: BorderRadius.circular(10),
+                      color: const Color(0xFF191919),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isProfitable
-                            ? const Color(0xFF1B5E20).withOpacity(0.3)
-                            : const Color(0xFFB71C1C).withOpacity(0.3),
-                        width: 1,
+                            ? const Color(0xFF1B5E20).withOpacity(0.5)
+                            : const Color(0xFFB71C1C).withOpacity(0.5),
+                        width: 1.5,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isProfitable
+                              ? const Color(0xFF1B5E20).withOpacity(0.2)
+                              : const Color(0xFFB71C1C).withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -408,9 +465,9 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                               ? Icons.trending_up
                               : Icons.trending_down,
                           color: pnlColor,
-                          size: 18,
+                          size: 20,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,17 +476,30 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                                 'P&L Portfolio',
                                 style: TextStyle(
                                   color: Colors.white70,
-                                  fontSize: 12,
+                                  fontSize: 13,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '\$${totalPnL.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: pnlColor,
-                                ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Text(
+                                    '\$${totalPnL.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: pnlColor,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '(${(totalPnL / (totalValue - totalPnL) * 100).toStringAsFixed(2)}%)',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: pnlColor.withOpacity(0.7),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -439,7 +509,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                   ),
 
                   // Стоимость позиций и общая стоимость
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   Row(
                     children: [
                       Expanded(
@@ -449,12 +519,18 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                           Colors.white70,
                         ),
                       ),
-                      const SizedBox(width: 24),
+                      Container(
+                        height: 40,
+                        width: 1,
+                        color: const Color(0xFF333333),
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                      ),
                       Expanded(
                         child: _summaryItem(
-                          'Total value',
+                          'Total assets',
                           '\$${totalValue.toStringAsFixed(2)}',
                           Colors.white,
+                          isBold: true,
                         ),
                       ),
                     ],
@@ -468,7 +544,8 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
     );
   }
 
-  Widget _summaryItem(String label, String value, Color valueColor) {
+  Widget _summaryItem(String label, String value, Color valueColor,
+      {bool isBold = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -476,16 +553,16 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
           label,
           style: const TextStyle(
             color: Colors.white60,
-            fontSize: 12,
+            fontSize: 13,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           value,
           style: TextStyle(
             color: valueColor,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontSize: isBold ? 24 : 20,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
             letterSpacing: 0.5,
           ),
         ),
@@ -501,25 +578,43 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.account_balance_wallet_outlined,
-                  size: 64, color: Colors.white30),
-              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF333333),
+                    width: 1,
+                  ),
+                ),
+                child: const Icon(Icons.account_balance_wallet_outlined,
+                    size: 64, color: Colors.white38),
+              ),
+              const SizedBox(height: 28),
               const Text(
                 'Your portfolio is empty',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.w300,
                   color: Colors.white,
                   letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 12),
-              const Text(
-                'Add tickers and confirm trading signals to open virtual positions',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.white60),
+              const SizedBox(height: 16),
+              Container(
+                constraints: const BoxConstraints(maxWidth: 300),
+                child: const Text(
+                  'Add tickers and confirm trading signals to open virtual positions',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.white60,
+                    height: 1.5,
+                  ),
+                ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
@@ -575,7 +670,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
     return RepaintBoundary(
       child: ListView.builder(
         itemCount: trades.length,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(16),
         itemBuilder: (context, index) {
           final trade = trades[index];
           final isLong = trade['signal_type'].toLowerCase() == 'long';
@@ -598,135 +693,222 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
 
           return RepaintBoundary(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 16),
               child: Card(
-                elevation: 0,
+                elevation: 4,
                 color: const Color(0xFF111111),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   side: BorderSide(
                     color: signalColor.withOpacity(0.3),
-                    width: 1,
+                    width: 1.5,
                   ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Заголовок и тикер
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: signalColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: signalColor.withOpacity(0.3),
-                                width: 1,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        isLong
+                            ? const Color(0xFF1A2C1A)
+                            : const Color(0xFF2C1A1A),
+                        const Color(0xFF0D0D0D),
+                      ],
+                      stops: const [0.1, 0.6],
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Заголовок и тикер
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: signalColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: signalColor.withOpacity(0.5),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: signalColor.withOpacity(0.15),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                trade['ticker'],
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: signalColor,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
-                            child: Text(
-                              trade['ticker'],
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: signalColor,
+                            const SizedBox(width: 14),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: signalColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: signalColor.withOpacity(0.5),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: signalColor.withOpacity(0.15),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                trade['signal_type'].toUpperCase(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: signalColor,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: signalColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: signalColor.withOpacity(0.3),
-                                width: 1,
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: pnlColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: pnlColor.withOpacity(0.5),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: pnlColor.withOpacity(0.15),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isProfitable
+                                        ? Icons.arrow_upward_rounded
+                                        : Icons.arrow_downward_rounded,
+                                    color: pnlColor,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${pnlPercent.toStringAsFixed(2)}%',
+                                    style: TextStyle(
+                                      color: pnlColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            child: Text(
-                              trade['signal_type'].toUpperCase(),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: signalColor,
-                              ),
-                            ),
-                          ),
-                          const Spacer(),
-                          Icon(
-                            isProfitable
-                                ? Icons.arrow_upward
-                                : Icons.arrow_downward,
-                            color: pnlColor,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${pnlPercent.toStringAsFixed(2)}%',
-                            style: TextStyle(
-                              color: pnlColor,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
 
-                      // Инфо о позиции
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _tradeInfoItem(
-                              'Entry',
-                              '\$${entryPrice.toStringAsFixed(2)}',
-                              Colors.white70,
+                        // Инфо о позиции
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF191919),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0xFF333333),
+                              width: 1,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _tradeInfoItem(
-                              'Current',
-                              '\$${currentPrice.toStringAsFixed(2)}',
-                              currentPrice > entryPrice
-                                  ? const Color(0xFF66BB6A)
-                                  : currentPrice < entryPrice
-                                      ? const Color(0xFFE57373)
-                                      : Colors.white70,
-                            ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _tradeInfoItem(
+                                      'Entry',
+                                      '\$${entryPrice.toStringAsFixed(2)}',
+                                      Colors.white70,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _tradeInfoItem(
+                                      'Current',
+                                      '\$${currentPrice.toStringAsFixed(2)}',
+                                      currentPrice > entryPrice
+                                          ? const Color(0xFF66BB6A)
+                                          : currentPrice < entryPrice
+                                              ? const Color(0xFFE57373)
+                                              : Colors.white70,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _tradeInfoItem(
+                                      'Quantity',
+                                      quantity.toStringAsFixed(2),
+                                      Colors.white70,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                child: Divider(
+                                    color: Color(0xFF333333), height: 1),
+                              ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: _tradeInfoItem(
+                                      'Value',
+                                      '\$${positionValue.toStringAsFixed(2)}',
+                                      Colors.white,
+                                      isBold: true,
+                                    ),
+                                  ),
+                                  Container(
+                                    height: 40,
+                                    width: 1,
+                                    color: const Color(0xFF333333),
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 16),
+                                  ),
+                                  Expanded(
+                                    child: _tradeInfoItem(
+                                      'P&L',
+                                      '\$${pnl.toStringAsFixed(2)}',
+                                      pnlColor,
+                                      isBold: true,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _tradeInfoItem(
-                              'Quantity',
-                              quantity.toStringAsFixed(2),
-                              Colors.white70,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // Стоимость позиции и P&L
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _tradeInfoItem(
-                            'Value',
-                            '\$${positionValue.toStringAsFixed(2)}',
-                            Colors.white,
-                          ),
-                          _tradeInfoItem(
-                            'P&L',
-                            '\$${pnl.toStringAsFixed(2)}',
-                            pnlColor,
-                          ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -737,23 +919,24 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
     );
   }
 
-  Widget _tradeInfoItem(String label, String value, Color valueColor) {
+  Widget _tradeInfoItem(String label, String value, Color valueColor,
+      {bool isBold = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(
-            fontSize: 12,
+            fontSize: 13,
             color: Colors.white38,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           value,
           style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+            fontSize: isBold ? 18 : 16,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
             color: valueColor,
           ),
         ),

@@ -100,9 +100,7 @@ class SignalModel {
 // Перечисление типов моделей анализа
 enum AnalysisModelType {
   rsiModel,
-  macdModel,
   bollingerModel,
-  avModel, // Alpha Vantage model
 }
 
 // Расширение для получения строкового представления типа модели
@@ -111,12 +109,8 @@ extension AnalysisModelTypeExtension on AnalysisModelType {
     switch (this) {
       case AnalysisModelType.rsiModel:
         return 'RSI_MODEL';
-      case AnalysisModelType.macdModel:
-        return 'MACD_MODEL';
       case AnalysisModelType.bollingerModel:
         return 'BOLLINGER_MODEL';
-      case AnalysisModelType.avModel:
-        return 'AV_MODEL';
     }
   }
 
@@ -124,12 +118,8 @@ extension AnalysisModelTypeExtension on AnalysisModelType {
     switch (this) {
       case AnalysisModelType.rsiModel:
         return 'RSI Model';
-      case AnalysisModelType.macdModel:
-        return 'MACD Model';
       case AnalysisModelType.bollingerModel:
         return 'Bollinger Bands Model';
-      case AnalysisModelType.avModel:
-        return 'Alpha Vantage Model';
     }
   }
 
@@ -137,12 +127,8 @@ extension AnalysisModelTypeExtension on AnalysisModelType {
     switch (this) {
       case AnalysisModelType.rsiModel:
         return 'Relative Strength Index анализирует импульс и скорость изменения цены';
-      case AnalysisModelType.macdModel:
-        return 'Moving Average Convergence Divergence использует скользящие средние для определения тренда';
       case AnalysisModelType.bollingerModel:
         return 'Bollinger Bands анализирует волатильность и отскоки от границ ценового диапазона';
-      case AnalysisModelType.avModel:
-        return 'Alpha Vantage анализирует данные котировок акций с использованием API Alpha Vantage';
     }
   }
 
@@ -150,30 +136,31 @@ extension AnalysisModelTypeExtension on AnalysisModelType {
     switch (this) {
       case AnalysisModelType.rsiModel:
         return Icons.show_chart;
-      case AnalysisModelType.macdModel:
-        return Icons.trending_up;
       case AnalysisModelType.bollingerModel:
         return Icons.architecture;
-      case AnalysisModelType.avModel:
-        return Icons.analytics;
     }
   }
 }
 
 // Получение типа модели из строки
 AnalysisModelType getModelTypeFromString(String? modelType) {
-  if (modelType == null) return AnalysisModelType.rsiModel;
+  print('🔄 Преобразование строкового типа модели: $modelType');
+
+  if (modelType == null) {
+    print('🔄 Модель не указана, возвращаю RSI по умолчанию');
+    return AnalysisModelType.rsiModel;
+  }
 
   switch (modelType) {
     case 'RSI_MODEL':
+      print('🔄 Найдена модель RSI');
       return AnalysisModelType.rsiModel;
-    case 'MACD_MODEL':
-      return AnalysisModelType.macdModel;
     case 'BOLLINGER_MODEL':
+      print('🔄 Найдена модель Bollinger Bands');
       return AnalysisModelType.bollingerModel;
-    case 'AV_MODEL':
-      return AnalysisModelType.avModel;
     default:
+      // Для неизвестных моделей возвращаем RSI как дефолтную
+      print('🔄 Неизвестная модель: $modelType, возвращаю RSI по умолчанию');
       return AnalysisModelType.rsiModel;
   }
 }

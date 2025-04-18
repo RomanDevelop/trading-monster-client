@@ -20,6 +20,27 @@ class WatchlistItem {
   }
 }
 
+// Класс для хранения информации о близости сигнала
+class SignalProximityItem {
+  final String ticker;
+  final int proximityValue; // значение от 0 до 100
+  final String description;
+
+  SignalProximityItem({
+    required this.ticker,
+    required this.proximityValue,
+    required this.description,
+  });
+
+  factory SignalProximityItem.fromJson(Map<String, dynamic> json) {
+    return SignalProximityItem(
+      ticker: json['ticker'] as String,
+      proximityValue: json['proximity_value'] as int,
+      description: json['description'] as String? ?? '',
+    );
+  }
+}
+
 // Providers
 final signalViewModelProvider =
     StateNotifierProvider<SignalViewModel, AsyncValue<List<SignalModel>>>(
@@ -35,6 +56,10 @@ final watchlistProvider =
 // Новый провайдер для детальной информации о watchlist
 final watchlistDetailsProvider = StateNotifierProvider<WatchlistDetailsNotifier,
     AsyncValue<List<WatchlistItem>>>((ref) => WatchlistDetailsNotifier());
+
+// Провайдер для информации о близости сигналов
+final signalProximityProvider = StateNotifierProvider<SignalProximityNotifier,
+    AsyncValue<List<SignalProximityItem>>>((ref) => SignalProximityNotifier());
 
 final balanceProvider =
     StateNotifierProvider<BalanceNotifier, AsyncValue<double>>(
@@ -277,14 +302,26 @@ class SignalViewModel extends StateNotifier<AsyncValue<List<SignalModel>>> {
       {AnalysisModelType modelType = AnalysisModelType.rsiModel}) async {
     if (_disposed) return;
 
+    print(
+        '⭐ SignalViewModel: добавление тикера $ticker с моделью ${modelType.displayName}');
+
     // Delegate adding ticker to WatchlistNotifier
     final success = await _ref
         .read(watchlistProvider.notifier)
         .addTicker(ticker, modelType: modelType);
 
     if (success && !_disposed) {
+      // Также обновляем WatchlistDetailsNotifier
+      print(
+          '⭐ SignalViewModel: успешно добавлен тикер, обновляю детали watchlist');
+      await _ref
+          .read(watchlistDetailsProvider.notifier)
+          .fetchWatchlistDetails();
+
       // Update signals after adding ticker
       await fetchSignals();
+    } else {
+      print('⭐ SignalViewModel: не удалось добавить тикер');
     }
   }
 
@@ -545,6 +582,9 @@ class WatchlistNotifier extends StateNotifier<AsyncValue<List<String>>> {
     if (_disposed) return false;
 
     try {
+      print(
+          '📡 WatchlistNotifier: отправка тикера $ticker с моделью ${modelType.displayName} (${modelType.value}) на сервер');
+
       final response = await http.post(
         Uri.parse('$serverUrl/tickers'),
         headers: {'Content-Type': 'application/json'},
@@ -554,6 +594,10 @@ class WatchlistNotifier extends StateNotifier<AsyncValue<List<String>>> {
       if (_disposed) return false;
 
       if (response.statusCode == 200) {
+        print(
+            '✓ WatchlistNotifier: успешно добавлен тикер $ticker с моделью ${modelType.value}');
+        print('✓ Ответ сервера: ${response.body}');
+
         Future.microtask(() {
           if (!_disposed) {
             fetchWatchlist();
@@ -561,9 +605,11 @@ class WatchlistNotifier extends StateNotifier<AsyncValue<List<String>>> {
         });
         return true;
       }
+      print(
+          '✗ WatchlistNotifier: ошибка добавления тикера. Код: ${response.statusCode}, тело: ${response.body}');
       return false;
     } catch (e) {
-      print('Error adding ticker: $e');
+      print('✗ WatchlistNotifier: исключение при добавлении тикера: $e');
       return false;
     }
   }
@@ -620,24 +666,38 @@ class WatchlistDetailsNotifier
 
     try {
       state = const AsyncValue.loading();
-      final response = await http.get(Uri.parse('$serverUrl/tickers/details'));
+      print(
+          '📋 WatchlistDetailsNotifier: получение деталей тикеров со стороны сервера');
+      final response =
+          await http.get(Uri.parse('$serverUrl/tickers/with_models'));
 
       if (_disposed) return;
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
+        print('✓ WatchlistDetailsNotifier: получены детали тикеров: $data');
+
         final List<WatchlistItem> tickers = data
             .map((e) => WatchlistItem.fromJson(e as Map<String, dynamic>))
             .toList();
+
+        print('📊 WatchlistDetailsNotifier: обработанные детали тикеров:');
+        for (var item in tickers) {
+          print('  - Тикер: ${item.ticker}, Модель: ${item.modelType}');
+        }
+
         state = AsyncValue.data(tickers);
       } else {
+        print(
+            '✗ WatchlistDetailsNotifier: ошибка получения деталей. Код: ${response.statusCode}, тело: ${response.body}');
         state = AsyncValue.error(
             'Error getting watchlist details: ${response.statusCode}',
             StackTrace.current);
       }
     } catch (e, stackTrace) {
       if (!_disposed) {
-        print('Error getting watchlist details: $e');
+        print(
+            '✗ WatchlistDetailsNotifier: исключение при получении деталей: $e');
         state = AsyncValue.error(e, stackTrace);
       }
     }
@@ -706,5 +766,173 @@ class WatchlistDetailsNotifier
     );
 
     return item.modelType;
+  }
+}
+
+// Class for managing signal proximity data
+class SignalProximityNotifier
+    extends StateNotifier<AsyncValue<List<SignalProximityItem>>> {
+  bool _disposed = false;
+
+  SignalProximityNotifier() : super(const AsyncValue.loading()) {
+    // Delay initialization to prevent updating during widget tree building
+    Future.microtask(() {
+      if (!_disposed) {
+        fetchSignalProximity();
+      }
+    });
+  }
+
+  final String serverUrl = 'http://127.0.0.1:8001/api/v1';
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  Future<void> fetchSignalProximity() async {
+    if (_disposed) return;
+
+    try {
+      state = const AsyncValue.loading();
+      print('📡 SignalProximityNotifier: Запрос данных о близости сигналов');
+      final response = await http.get(Uri.parse('$serverUrl/tickers/details'));
+
+      if (_disposed) return;
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        print(
+            '✓ SignalProximityNotifier: Получены данные о близости сигналов: $data');
+
+        final List<SignalProximityItem> proximityItems = data
+            .map((e) => SignalProximityItem.fromJson(e as Map<String, dynamic>))
+            .toList();
+
+        state = AsyncValue.data(proximityItems);
+      } else {
+        print(
+            '✗ SignalProximityNotifier: Ошибка получения данных. Код: ${response.statusCode}');
+
+        // В случае ошибки генерируем временные данные
+        // В реальном приложении такого быть не должно!
+        final tempData = await _generateTemporaryData();
+        state = AsyncValue.data(tempData);
+      }
+    } catch (e, stackTrace) {
+      if (!_disposed) {
+        print('✗ SignalProximityNotifier: Исключение при получении данных: $e');
+
+        // В случае исключения генерируем временные данные
+        // В реальном приложении такого быть не должно!
+        final tempData = await _generateTemporaryData();
+        state = AsyncValue.data(tempData);
+      }
+    }
+  }
+
+  // Временный метод для генерации данных о близости сигналов
+  // В реальном приложении должен быть удален после реализации API
+  Future<List<SignalProximityItem>> _generateTemporaryData() async {
+    // Получаем список тикеров
+    final response = await http.get(Uri.parse('$serverUrl/tickers'));
+    if (response.statusCode == 200) {
+      final List<dynamic> tickers = jsonDecode(response.body);
+      return tickers.map<SignalProximityItem>((ticker) {
+        // Генерируем псевдослучайное значение на основе хеша имени тикера
+        final int hashCode = ticker.toString().hashCode.abs();
+        final int proximityValue = hashCode % 101; // Значение от 0 до 100
+
+        // Генерируем описание на основе значения
+        String description = '';
+        if (proximityValue > 75) {
+          description = proximityValue > 90
+              ? 'Очень близко к формированию сигнала'
+              : 'Приближается к формированию сигнала';
+        } else if (proximityValue > 50) {
+          description = 'Умеренное движение к сигнальной зоне';
+        } else if (proximityValue > 25) {
+          description = 'Начальные признаки формирования сигнала';
+        } else {
+          description = 'Нейтральное состояние';
+        }
+
+        return SignalProximityItem(
+          ticker: ticker.toString(),
+          proximityValue: proximityValue,
+          description: description,
+        );
+      }).toList();
+    }
+
+    // В случае ошибки возвращаем пустой список
+    return [];
+  }
+
+  // Получение данных о близости сигнала для конкретного тикера
+  Future<SignalProximityItem?> getProximityForTicker(String ticker) async {
+    try {
+      final response = await http
+          .get(Uri.parse('$serverUrl/tickers/$ticker/signal_proximity'));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        return SignalProximityItem.fromJson(data);
+      }
+
+      // Если API недоступен, ищем в кэше
+      final items = state.valueOrNull;
+      if (items != null) {
+        final item = items.firstWhere(
+          (item) => item.ticker == ticker,
+          orElse: () => SignalProximityItem(
+            ticker: ticker,
+            proximityValue: 0,
+            description: 'Нет данных',
+          ),
+        );
+        return item;
+      }
+
+      return null;
+    } catch (e) {
+      print('Error getting proximity for ticker $ticker: $e');
+      return null;
+    }
+  }
+
+  // Получение значения близости из кэша для тикера
+  int getProximityValueForTicker(String ticker) {
+    final items = state.valueOrNull;
+    if (items == null) return 0;
+
+    final item = items.firstWhere(
+      (item) => item.ticker == ticker,
+      orElse: () => SignalProximityItem(
+        ticker: ticker,
+        proximityValue: 0,
+        description: 'Нет данных',
+      ),
+    );
+
+    return item.proximityValue;
+  }
+
+  // Получение описания близости из кэша для тикера
+  String getProximityDescriptionForTicker(String ticker) {
+    final items = state.valueOrNull;
+    if (items == null) return 'Нет данных';
+
+    final item = items.firstWhere(
+      (item) => item.ticker == ticker,
+      orElse: () => SignalProximityItem(
+        ticker: ticker,
+        proximityValue: 0,
+        description: 'Нет данных',
+      ),
+    );
+
+    return item.description;
   }
 }

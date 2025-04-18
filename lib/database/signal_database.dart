@@ -180,8 +180,8 @@ class SignalDatabase {
       // For LONG: P&L = (Close price - Entry price) * Quantity
       pnl = (closePrice - entryPrice) * quantity;
 
-      // IMPORTANT: Add closing amount to balance
-      // (return investment + add P&L)
+      // For LONG positions, add the closing amount to the balance
+      // which already includes both the initial investment and P&L
       updatedBalance = currentBalance + closingAmount;
 
       print(

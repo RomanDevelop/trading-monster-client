@@ -12,8 +12,15 @@ class AddTickerScreen extends ConsumerStatefulWidget {
 
 class _AddTickerScreenState extends ConsumerState<AddTickerScreen> {
   final TextEditingController _controller = TextEditingController();
-  AnalysisModelType _selectedModelType = AnalysisModelType.rsiModel;
+  AnalysisModelType _selectedModelType = AnalysisModelType.bollingerModel;
   final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    print(
+        '🚀 Инициализация экрана добавления тикера с моделью по умолчанию: ${_selectedModelType.displayName} (${_selectedModelType.value})');
+  }
 
   @override
   void dispose() {
@@ -237,6 +244,8 @@ class _AddTickerScreenState extends ConsumerState<AddTickerScreen> {
             groupValue: _selectedModelType,
             onChanged: (value) {
               if (value != null) {
+                print(
+                    '🔍 Пользователь выбрал модель: ${value.displayName} (${value.value})');
                 setState(() {
                   _selectedModelType = value;
                 });
@@ -283,6 +292,8 @@ class _AddTickerScreenState extends ConsumerState<AddTickerScreen> {
             onPressed: () {
               final ticker = _controller.text.trim().toUpperCase();
               if (ticker.isNotEmpty) {
+                print(
+                    '✅ Добавление тикера: $ticker с моделью: ${_selectedModelType.displayName} (${_selectedModelType.value})');
                 ref.read(signalViewModelProvider.notifier).addTicker(
                       ticker,
                       modelType: _selectedModelType,
