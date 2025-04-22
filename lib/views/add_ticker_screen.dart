@@ -204,13 +204,15 @@ class _AddTickerScreenState extends ConsumerState<AddTickerScreen> {
                           style: const TextStyle(fontSize: 14),
                         ),
                         if (_selectedModelType ==
-                            AnalysisModelType.bollingerModel) ...[
+                                AnalysisModelType.bollingerModel ||
+                            _selectedModelType ==
+                                AnalysisModelType.rsiModel) ...[
                           const SizedBox(height: 12),
                           OutlinedButton.icon(
-                            onPressed: () => _showBollingerBandsInfo(context),
+                            onPressed: () {},
+                            //onPressed: () => _showBollingerBandsInfo(context),
                             icon: const Icon(Icons.info_outline),
-                            label:
-                                const Text('Learn more about Bollinger Bands'),
+                            label: const Text('Learn more about Models'),
                           ),
                         ],
                       ],

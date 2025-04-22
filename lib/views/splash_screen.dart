@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:client/views/main_screen.dart';
+import 'package:ai_monster/views/main_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -42,7 +42,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    Timer(const Duration(seconds: 10), () {
+    Timer(const Duration(seconds: 7), () {
       if (mounted) {
         _navigateToMainScreen();
       }

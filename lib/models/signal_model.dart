@@ -117,18 +117,18 @@ extension AnalysisModelTypeExtension on AnalysisModelType {
   String get displayName {
     switch (this) {
       case AnalysisModelType.rsiModel:
-        return 'RSI Model';
+        return 'Shark Model';
       case AnalysisModelType.bollingerModel:
-        return 'Bollinger Bands Model';
+        return 'Storm Model';
     }
   }
 
   String get description {
     switch (this) {
       case AnalysisModelType.rsiModel:
-        return 'Relative Strength Index анализирует импульс и скорость изменения цены';
+        return 'Dives deep into market depths like a shark, sensing the slightest changes in momentum. Hunts for sudden price reversals and finds perfect entry points';
       case AnalysisModelType.bollingerModel:
-        return 'Bollinger Bands анализирует волатильность и отскоки от границ ценового диапазона';
+        return 'Like a storm in the ocean, predicts turbulent price movements. Captures market volatility energy and identifies the moment before the storm for maximum profit';
     }
   }
 

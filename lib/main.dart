@@ -1,4 +1,4 @@
-import 'package:client/services/notification_service.dart';
+import 'package:ai_monster/services/notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'views/splash_screen.dart';
@@ -25,7 +25,7 @@ class StockSignalApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Trading Signal Bot',
+      title: 'AI Monster',
       theme: ThemeData.dark().copyWith(
         useMaterial3: true,
         colorScheme: const ColorScheme.dark(
